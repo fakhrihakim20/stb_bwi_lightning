@@ -1,0 +1,109 @@
+Lightning Data Quality Audit
+Generated: 2026-05-12T16:15:38
+Checks passed: 35
+Checks failed: 0
+Source workbook: Lightning Exposure Line Situbondo-Banyuwangi YoY.xlsx
+Source coordinates: koordinat tower srintami.xlsx
+Output directory: D:\15. Claude Code\09. Analysis - Lightning Situbondo-Banyuwangi\data_tidy
+workbook has 29 sheets
+
+========================================================================
+EXPOSURE SHEETS (yearly per-tower stats)
+========================================================================
+2019_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2019_Exposure: exactly one aggregate row (found 1)
+[PASS] 2019_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2019_Exposure: all tower_id parse to integers (0 bad)
+2020_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2020_Exposure: exactly one aggregate row (found 1)
+[PASS] 2020_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2020_Exposure: all tower_id parse to integers (0 bad)
+2021_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2021_Exposure: exactly one aggregate row (found 1)
+[PASS] 2021_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2021_Exposure: all tower_id parse to integers (0 bad)
+2022_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2022_Exposure: exactly one aggregate row (found 1)
+[PASS] 2022_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2022_Exposure: all tower_id parse to integers (0 bad)
+2023_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2023_Exposure: exactly one aggregate row (found 1)
+[PASS] 2023_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2023_Exposure: all tower_id parse to integers (0 bad)
+2024_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2024_Exposure: exactly one aggregate row (found 1)
+[PASS] 2024_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2024_Exposure: all tower_id parse to integers (0 bad)
+2025_Exposure: raw shape (282, 16), columns=['Name', 'Count', 'Count (-)', 'Count (+)', '% Positive', 'Density', 'Min kA', 'Max kA', 'Mean kA', 'Exp. factor', 'Min kA (-)', 'Max kA (-)', 'Mean kA (-)', 'Min kA (+)', 'Max kA (+)', 'Mean kA (+)']
+[PASS] 2025_Exposure: exactly one aggregate row (found 1)
+[PASS] 2025_Exposure: exactly 281 per-tower rows (found 281)
+[PASS] 2025_Exposure: all tower_id parse to integers (0 bad)
+[PASS] tower panel has 7*281 = 1967 rows (found 1967)
+[PASS] every year has exactly 281 unique towers
+Implied collection area (Count / Density) [km^2]: mean 3.126, median 3.125, std 0.001, range [3.125, 3.129]
+exp_factor (software-specific, NEGATIVE): mean -95.55, range [-650.70, 30.40]. Do NOT use as a simple area multiplier; treat as opaque covariate.
+[PASS] no NaNs in core count/density columns (found 0)
+[PASS] no negative count values
+
+========================================================================
+TIME TREND SHEETS (monthly whole-line)
+========================================================================
+2025_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2024_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2023_Timetrend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2022_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2021_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2020_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+2019_Time Trend: raw shape (13, 6), columns=['From', 'To', 'Count', 'Count (-)', 'Count (+)', '% (+)']
+[PASS] all 7 years have Time Trend sheet (missing: [])
+monthly panel: 91 rows across 7 years
+
+========================================================================
+PEAK CURRENT SHEETS (kA histograms)
+========================================================================
+2019_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2020_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2021_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2022_Peak Current: raw shape (999, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2023_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2024_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+2025_Peak Current: raw shape (199, 10), columns=['From (kA)', 'To (kA)', 'Count (-)', 'Count (+)', 'Cumul. (-)', 'Cumul. (+)', '% (-)', '% (+)', 'Cumul. % (-)', 'Cumul. % (+)']
+native kA bin width by year:
+  2019: 5 kA
+  2020: 5 kA
+  2021: 5 kA
+  2022: 1 kA
+  2023: 5 kA
+  2024: 5 kA
+  2025: 5 kA
+
+========================================================================
+TOWER COORDINATE FILE
+========================================================================
+raw shape (563, 7), columns=['INDUK', 'WIL. KERJA', 'NAMA', 'LAT', 'LNG', 'LOCK LAT', 'LOCK LNG']
+[PASS] coordinate file has NAMA, LAT, LNG columns
+dropped redundant columns: ['LOCK LAT', 'LOCK LNG']
+[PASS] exactly 281 TOWER rows (found 281)
+[PASS] exactly 282 SPAN rows (found 282)
+[PASS] every row is either TOWER or SPAN (no orphans)
+[PASS] all tower NAMA strings have an extractable #NNN id
+[PASS] tower IDs are exactly 1..281 with no gaps
+[PASS] all tower LAT in [-9, -7]
+[PASS] all tower LNG in [113, 115]
+
+========================================================================
+CROSS-FILE VALIDATION
+========================================================================
+[PASS] tower IDs match between exposure and coordinates (panel: 281, coords: 281, intersection: 281)
+2025 reconciliation: exposure-line total = 402, monthly sum (non-partial) = 402, rel diff = 0.000
+
+========================================================================
+OUTPUTS
+========================================================================
+  _data_quality_report.txt (7,948 bytes)
+  exposure_line_year.csv (734 bytes)
+  exposure_tower_year.csv (143,654 bytes)
+  monthly_line.csv (6,151 bytes)
+  peak_current_hist.csv (105,154 bytes)
+  spans.csv (17,322 bytes)
+  towers.csv (16,829 bytes)

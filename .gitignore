@@ -1,0 +1,23 @@
+# Agent-skill workspace (only used to build the site, not part of the report)
+.agents/
+skills-lock.json
+.claude/
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.ipynb_checkpoints/
+
+# Transient executed notebook (the source .ipynb is what we version-control)
+lightning_gfd_forecast.executed.ipynb
+
+# Local plan file (lives in user's Claude folder)
+*.code-workspace
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FDFBF7" />
+<title>Lightning GFD Forecast — 150 kV Situbondo–Banyuwangi · 2026–2030</title>
+<meta name="description" content="A study commissioned to understand and forecast lightning ground-flash density on every tower of the 150 kV Situbondo–Banyuwangi transmission line for the next five years." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8" defer></script>
+
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav">
+  <div class="nav-pill">
+    <a href="#top" class="nav-mark"><span class="bolt">⚡</span><span>STBDO–BWNGI · GFD Report</span></a>
+    <button class="nav-toggle" aria-label="Open navigation" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#data">Data</a></li>
+      <li><a href="#method">Method</a></li>
+      <li><a href="#forecast">Forecast</a></li>
+      <li><a href="#hotspots">Hotspots</a></li>
+      <li><a href="#caveats">Caveats</a></li>
+      <li><a href="#downloads">Downloads</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="top">
+
+<!-- =================================================================== -->
+<!-- HERO                                                                -->
+<!-- =================================================================== -->
+<section class="hero">
+  <div class="hero-grid reveal">
+    <div class="hero-meta">
+      <span class="eyebrow">Internal research · PLN UPT Banyuwangi</span>
+      <span class="eyebrow muted">Prepared 2026</span>
+    </div>
+    <h1 class="display">
+      Forecasting where<br/>
+      <em>lightning will strike</em><br/>
+      the line — tower by tower,<br/>
+      year by year.
+    </h1>
+    <p class="lede">
+      A complete study of seven years of lightning data on the 150 kV
+      Situbondo–Banyuwangi transmission line, and a five-year forward
+      forecast for every one of its 281 towers — written for engineers
+      and decision-makers, not data scientists.
+    </p>
+    <div class="hero-cta">
+      <a href="#summary" class="btn-pill primary">
+        <span>Read the summary</span>
+        <span class="btn-arrow">→</span>
+      </a>
+      <a href="#downloads" class="btn-pill ghost">
+        <span>Get the data</span>
+        <span class="btn-arrow">↓</span>
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-num">281</span>
+        <span class="stat-lbl">Towers analysed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">7</span>
+        <span class="stat-lbl">Years of history (2019–2025)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">5</span>
+        <span class="stat-lbl">Years of forecast (2026–2030)</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">3</span>
+        <span class="stat-lbl">Climate scenarios</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- EXECUTIVE SUMMARY                                                    -->
+<!-- =================================================================== -->
+<section id="summary" class="band band-paper">
+  <div class="container narrow reveal">
+    <span class="section-tag">01 · Executive Summary</span>
+    <h2 class="h2">What this report says, in one minute.</h2>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="card-num">1</span>
+        <h3>Lightning on the line is not steady.</h3>
+        <p>
+          Annual unique strikes ranged from <strong>402 (2025)</strong> to
+          <strong>1,718 (2022)</strong> — a four-times swing. Using a single
+          long-term average to plan arresters, insulation and maintenance
+          systematically misallocates risk.
+        </p>
+      </div>
+      <div class="summary-card">
+        <span class="card-num">2</span>
+        <h3>The hotspots are stable.</h3>
+        <p>
+          The same group of towers (roughly <strong>#142–#159</strong>, in
+          the Mt. Ijen foothills at 210–245 m elevation) leads every year.
+          Geography wins over weather when you compare towers to each other.
+        </p>
+      </div>
+      <div class="summary-card">
+        <span class="card-num">3</span>
+        <h3>The total moves with climate.</h3>
+        <p>
+          Year-to-year total strike count correlates with ENSO and IOD
+          (the ocean–atmosphere cycles that drive Indonesia's monsoon).
+          <strong>El Niño</strong> years are drier and quieter; <strong>La
+          Niña</strong> years are wetter and noisier.
+        </p>
+      </div>
+      <div class="summary-card">
+        <span class="card-num">4</span>
+        <h3>The forecast has honest limits.</h3>
+        <p>
+          With only seven years of data, our model beats a plain average by
+          about <strong>2&nbsp;%</strong>. Use the forecast as a
+          <em>sensitivity guide</em> for the next five years, not as a
+          precise prediction. Caveats are listed in section 06.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- PROBLEM                                                              -->
+<!-- =================================================================== -->
+<section id="problem" class="band">
+  <div class="container reveal">
+    <div class="split">
+      <div class="split-text">
+        <span class="section-tag">02 · The Problem</span>
+        <h2 class="h2">Why does this matter for PLN?</h2>
+        <p>
+          Lightning is the single biggest cause of unplanned outages on
+          tropical 150&nbsp;kV transmission lines. A flash that hits — or
+          induces voltage near — a tower can flash over an insulator and
+          trip the line. On the Situbondo–Banyuwangi corridor we see this
+          most years, in clusters near the mountainous middle section.
+        </p>
+        <p>
+          The traditional engineering approach uses a single
+          <strong>Ground Flash Density</strong> (GFD) number from a regional
+          map. This works for new-build design, but it cannot tell you:
+        </p>
+        <ul class="bullets">
+          <li>Which specific towers face the highest risk this year?</li>
+          <li>How will that change if we enter an El Niño cycle in 2027?</li>
+          <li>Where do we deploy a limited arrester budget for the most return?</li>
+        </ul>
+        <p>
+          This study answers those three questions using the lightning
+          records you have already paid for, plus public climate data.
+        </p>
+      </div>
+      <div class="split-fig">
+        <div class="card double-bezel">
+          <div class="card-inner">
+            <div id="fig-history" class="plotly-fig"></div>
+            <p class="fig-cap">
+              <strong>Figure 1.</strong> Annual unique strikes on the line
+              (left axis, bars) and the El&nbsp;Niño/IOD climate index
+              (right axis, lines). When the climate index is negative
+              (La&nbsp;Niña), lightning activity tends to be higher.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- DATA                                                                 -->
+<!-- =================================================================== -->
+<section id="data" class="band band-cream">
+  <div class="container reveal">
+    <span class="section-tag">03 · The Data</span>
+    <h2 class="h2">What we worked with.</h2>
+    <p class="lede-narrow">
+      Two source files were provided by PLN: a Vaisala-format lightning
+      exposure workbook (2019–2025) and a tower-coordinate sheet.
+      The raw data was messy — 29 sheets, mixed schemas, duplicated
+      columns. We first converted everything into seven clean tidy CSVs
+      so every later step is reproducible.
+    </p>
+
+    <div class="bento">
+      <div class="bento-cell c-wide double-bezel">
+        <div class="card-inner">
+          <span class="cell-tag">Per tower · per year</span>
+          <h3 class="bento-h">1,967 records</h3>
+          <p>
+            Every one of the 281 towers, every year from 2019 to 2025,
+            with: total strikes, positive/negative split, mean and peak
+            current (kA), and the local density (flashes per km²).
+          </p>
+        </div>
+      </div>
+      <div class="bento-cell double-bezel">
+        <div class="card-inner">
+          <span class="cell-tag">Whole line · monthly</span>
+          <h3 class="bento-h">84 months</h3>
+          <p>Strike totals month-by-month for seasonality.</p>
+        </div>
+      </div>
+      <div class="bento-cell double-bezel">
+        <div class="card-inner">
+          <span class="cell-tag">Per tower</span>
+          <h3 class="bento-h">281 locations</h3>
+          <p>Latitude, longitude, elevation, distance to coast.</p>
+        </div>
+      </div>
+      <div class="bento-cell c-wide double-bezel">
+        <div class="card-inner">
+          <span class="cell-tag">Climate · external</span>
+          <h3 class="bento-h">ENSO &amp; IOD indices</h3>
+          <p>
+            Monthly Niño 3.4 (NOAA) and IOD DMI indices, going back to
+            the 1950s — used to test whether wet/dry cycles in the
+            Indian Ocean and Pacific drive year-to-year lightning swings.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card double-bezel" style="margin-top: 2rem;">
+      <div class="card-inner">
+        <div id="fig-seasonality" class="plotly-fig small"></div>
+        <p class="fig-cap">
+          <strong>Figure 2.</strong> Average lightning activity by month
+          across all seven years. The Indonesian wet season
+          (October–April) is when most strikes happen.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- METHOD                                                               -->
+<!-- =================================================================== -->
+<section id="method" class="band">
+  <div class="container narrow reveal">
+    <span class="section-tag">04 · The Method</span>
+    <h2 class="h2">How the forecast was built — in plain language.</h2>
+    <p class="lede-narrow">
+      We tested several modelling approaches and kept the one that
+      actually worked at this sample size. The chosen approach has
+      <em>two stages</em>, mirroring how an engineer would reason
+      about it.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">Stage 1</span>
+        <h4>How much lightning hits the line each year?</h4>
+        <p>
+          We fit a simple statistical model to the seven historical line
+          totals. Because seven points is very little, we let the model
+          decide whether to use the climate indices (ENSO, IOD) or
+          fall back to a plain average — and we measure how well it
+          would have predicted each historical year if that year had
+          been hidden.
+        </p>
+      </li>
+      <li>
+        <span class="step-num">Stage 2</span>
+        <h4>Which towers absorb that lightning?</h4>
+        <p>
+          Each tower has a stable "share" of the line's total strikes —
+          the high-elevation foothill towers consistently take more
+          than coastal ones. We compute each tower's seven-year average
+          share (with statistical shrinkage to avoid over-fitting one
+          freak storm) and multiply it by Stage 1's annual forecast.
+        </p>
+      </li>
+    </ol>
+
+    <div class="callout">
+      <span class="callout-tag">What we did <em>not</em> use</span>
+      <p>
+        Deep-learning approaches like LSTMs or graph neural networks
+        were explicitly considered and ruled out. They need hundreds
+        to thousands of training examples — we had seven. A more
+        complex model would have looked impressive but produced
+        unreliable numbers. We chose statistical honesty over technical
+        novelty.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- FORECAST                                                             -->
+<!-- =================================================================== -->
+<section id="forecast" class="band band-paper">
+  <div class="container reveal">
+    <span class="section-tag">05 · The 2026–2030 Forecast</span>
+    <h2 class="h2">Three climate scenarios. Five years of forward projections.</h2>
+    <p class="lede-narrow">
+      Because no one can predict ENSO five years ahead, we don't try.
+      Instead, we show what happens to the line under three explicit
+      climate assumptions, and provide an equal-weighted "marginalised"
+      best-guess.
+    </p>
+
+    <div class="scenario-tabs">
+      <button class="tab active" data-scenario="Neutral">Neutral</button>
+      <button class="tab" data-scenario="LaNina">La Niña <span class="sm">(wetter)</span></button>
+      <button class="tab" data-scenario="ElNino">El Niño <span class="sm">(drier)</span></button>
+      <button class="tab" data-scenario="Marginalized">Marginalised</button>
+    </div>
+
+    <div class="card double-bezel">
+      <div class="card-inner">
+        <div id="fig-forecast" class="plotly-fig"></div>
+        <p class="fig-cap">
+          <strong>Figure 3.</strong> Forecast mean GFD across all 281
+          towers for each year 2026–2030. The shaded band shows the
+          80&nbsp;% prediction interval — there is an 80&nbsp;% chance
+          the true value lands inside it. Wider bands mean more
+          uncertainty.
+        </p>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi double-bezel">
+        <div class="card-inner">
+          <span class="kpi-lbl">2028 La&nbsp;Niña vs El&nbsp;Niño gap</span>
+          <span class="kpi-val">~ 5 %</span>
+          <span class="kpi-foot">Difference in mean GFD between the wettest and driest scenarios.</span>
+        </div>
+      </div>
+      <div class="kpi double-bezel">
+        <div class="card-inner">
+          <span class="kpi-lbl">Top tower vs line average</span>
+          <span class="kpi-val">~ 1.5 ×</span>
+          <span class="kpi-foot">Highest-GFD tower receives 50 % more strike density than the line average.</span>
+        </div>
+      </div>
+      <div class="kpi double-bezel">
+        <div class="card-inner">
+          <span class="kpi-lbl">Model skill vs plain average</span>
+          <span class="kpi-val">+ 2 %</span>
+          <span class="kpi-foot">Two-stage model lowers cross-validation error 2 % over climatology.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- HOTSPOTS                                                             -->
+<!-- =================================================================== -->
+<section id="hotspots" class="band">
+  <div class="container reveal">
+    <span class="section-tag">06 · Where the risk concentrates</span>
+    <h2 class="h2">Interactive hotspot map &amp; top-20 ranking.</h2>
+    <p class="lede-narrow">
+      The interactive map below shows every tower coloured by its
+      predicted five-year mean GFD under the Neutral scenario. Click a
+      marker for the tower's full forecast and prediction interval.
+      Toggle the scenarios in the layer control.
+    </p>
+
+    <div class="card double-bezel map-wrap">
+      <div class="card-inner">
+        <div id="map" class="leaflet-mount"></div>
+      </div>
+    </div>
+
+    <div class="card double-bezel" style="margin-top: 2rem;">
+      <div class="card-inner">
+        <h3 class="card-h">Top 20 towers by 5-year mean GFD (Neutral)</h3>
+        <p class="muted small">Vertical line is the median forecast; horizontal whiskers show the 80&nbsp;% prediction interval.</p>
+        <div id="fig-top20" class="plotly-fig"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- CAVEATS                                                              -->
+<!-- =================================================================== -->
+<section id="caveats" class="band band-cream">
+  <div class="container reveal">
+    <span class="section-tag">07 · Honest limitations</span>
+    <h2 class="h2">What this study does <em>not</em> claim.</h2>
+    <p class="lede-narrow">
+      Engineering reports often hide their uncertainty in footnotes.
+      This one puts it in a dedicated section, because using the numbers
+      with the wrong assumptions costs more than not using them at all.
+    </p>
+
+    <div class="caveats">
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">A</span>
+          <h3>Skill over climatology is small.</h3>
+          <p>
+            Cross-validation shows our two-stage model lowers prediction
+            error by only ~2&nbsp;% compared to a plain seven-year
+            average. With seven years of data, a fancier model would
+            over-fit. Treat the climate scenarios as a
+            <em>sensitivity range</em>, not a precise prediction.
+          </p>
+        </div>
+      </article>
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">B</span>
+          <h3>The 2025 hold-out test was weak.</h3>
+          <p>
+            When we trained on 2019–2024 and predicted 2025, the
+            tower-by-tower agreement was modest (correlation ≈ 0.24).
+            Per-tower allocation is noisier than we would like — use the
+            <em>rank order</em> of hotspots more than the absolute
+            numbers.
+          </p>
+        </div>
+      </article>
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">C</span>
+          <h3>The "density" column needs a Vaisala check.</h3>
+          <p>
+            The per-tower density values in your Vaisala FALLS export are
+            consistently <strong>~5×</strong> the line-aggregate density.
+            This is likely because each lightning strike falls inside
+            ~5 adjacent towers' 3.125 km² collection circles. Before
+            comparing our numbers to published GFD climatologies, please
+            ask Vaisala support to confirm whether per-tower counts are
+            overlap-counted (we think so) or unique-attributed.
+          </p>
+        </div>
+      </article>
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">D</span>
+          <h3>Decadal trends are not modelled.</h3>
+          <p>
+            The forecast assumes the relationship between climate and
+            lightning that held in 2019–2025 will continue through 2030.
+            If a structural change occurs (e.g. sustained warming of the
+            western Pacific), reality may deviate. Re-run this study
+            annually with the newest year of data.
+          </p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- RECOMMENDATIONS                                                      -->
+<!-- =================================================================== -->
+<section id="recommendations" class="band">
+  <div class="container narrow reveal">
+    <span class="section-tag">08 · Recommendations</span>
+    <h2 class="h2">What we would actually do with this.</h2>
+    <ol class="recos">
+      <li>
+        <h4>Concentrate arrester upgrades on towers #140–#160.</h4>
+        <p>This cluster shows the highest predicted GFD in every scenario, with a stable seven-year history. The capital expenditure has the strongest expected return per rupiah here.</p>
+      </li>
+      <li>
+        <h4>Tie maintenance scheduling to ENSO state.</h4>
+        <p>BMKG / BoM publishes ENSO outlooks quarterly. In years leaning La&nbsp;Niña, advance pre-monsoon inspections of insulators and earthing on the foothill section. In El&nbsp;Niño years, that budget can be redirected to other lines.</p>
+      </li>
+      <li>
+        <h4>Verify the Vaisala density convention before the next purchase.</h4>
+        <p>The ~5× ratio between per-tower and line-aggregate density is the single biggest interpretation uncertainty in this report. A 30-minute conversation with Vaisala support resolves it permanently.</p>
+      </li>
+      <li>
+        <h4>Re-run this analysis every January.</h4>
+        <p>The entire pipeline is automated. As 2026 lightning data lands, the new run takes minutes and lets you see how reality compares to the forecast — a feedback loop that strengthens the model every year.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- DOWNLOADS                                                            -->
+<!-- =================================================================== -->
+<section id="downloads" class="band band-paper">
+  <div class="container reveal">
+    <span class="section-tag">09 · Downloads</span>
+    <h2 class="h2">All deliverables, ready to use.</h2>
+
+    <div class="dl-grid">
+      <a href="downloads/per_tower_forecast.xlsx" class="dl-card double-bezel" download>
+        <div class="card-inner">
+          <span class="dl-icon">▤</span>
+          <h3>Per-tower forecast (Excel)</h3>
+          <p>Three sheets per scenario (GFD · Count · kA) plus README with units and caveats.</p>
+          <span class="dl-act">Download .xlsx <span class="btn-arrow">↓</span></span>
+        </div>
+      </a>
+      <a href="downloads/hotspot_map.html" class="dl-card double-bezel" target="_blank" rel="noopener">
+        <div class="card-inner">
+          <span class="dl-icon">◎</span>
+          <h3>Standalone hotspot map</h3>
+          <p>Self-contained interactive Leaflet map with three scenario layers and tower popups.</p>
+          <span class="dl-act">Open .html <span class="btn-arrow">↗</span></span>
+        </div>
+      </a>
+      <a href="downloads/top20_ranking.csv" class="dl-card double-bezel" download>
+        <div class="card-inner">
+          <span class="dl-icon">≡</span>
+          <h3>Top-20 ranking (CSV)</h3>
+          <p>Highest-GFD towers with 80 % prediction interval, lat/lng, elevation.</p>
+          <span class="dl-act">Download .csv <span class="btn-arrow">↓</span></span>
+        </div>
+      </a>
+      <a href="downloads/sensitivity.csv" class="dl-card double-bezel" download>
+        <div class="card-inner">
+          <span class="dl-icon">~</span>
+          <h3>Climate sensitivity (CSV)</h3>
+          <p>Per-tower change in GFD per unit Niño 3.4 (ENSO elasticity, year 2028).</p>
+          <span class="dl-act">Download .csv <span class="btn-arrow">↓</span></span>
+        </div>
+      </a>
+      <a href="downloads/cv_skill.html" class="dl-card double-bezel" target="_blank" rel="noopener">
+        <div class="card-inner">
+          <span class="dl-icon">⊕</span>
+          <h3>Model skill report</h3>
+          <p>Cross-validation tables: MAE, RMSE, deviance, CRPS — every metric, every model, every fold.</p>
+          <span class="dl-act">Open .html <span class="btn-arrow">↗</span></span>
+        </div>
+      </a>
+      <a href="downloads/lightning_gfd_forecast.ipynb" class="dl-card double-bezel" download>
+        <div class="card-inner">
+          <span class="dl-icon">{ }</span>
+          <h3>Full Jupyter notebook</h3>
+          <p>The complete reproducible analysis — every cell, every parameter, every figure.</p>
+          <span class="dl-act">Download .ipynb <span class="btn-arrow">↓</span></span>
+        </div>
+      </a>
+    </div>
+
+    <div class="repo-note">
+      <p>
+        Source code, tidy data, and this report are open at
+        <a href="https://github.com/fakhrihakim20/stb_bwi_lightning" target="_blank" rel="noopener">github.com/fakhrihakim20/stb_bwi_lightning</a>.
+        The analysis can be re-run in under five minutes once Python and the listed packages are installed.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- FOOTER                                                               -->
+<!-- =================================================================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="foot-grid">
+      <div>
+        <span class="foot-mark"><span class="bolt">⚡</span> STBDO–BWNGI GFD</span>
+        <p class="muted small">
+          Internal research report. Prepared with open-source tools
+          (Python, statsmodels, Plotly, Leaflet) and Vaisala lightning
+          exposure data licensed to PLN.
+        </p>
+      </div>
+      <div>
+        <span class="foot-h">Method</span>
+        <ul>
+          <li>Two-stage statistical hybrid</li>
+          <li>500-rep bootstrap intervals</li>
+          <li>Leave-one-year-out cross-validation</li>
+          <li>Three explicit climate scenarios</li>
+        </ul>
+      </div>
+      <div>
+        <span class="foot-h">Caveats</span>
+        <ul>
+          <li>n = 7 years of training data</li>
+          <li>~2 % skill over climatology</li>
+          <li>~5× Vaisala convention to verify</li>
+          <li>Decadal trends not modelled</li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span class="small muted">© 2026 · Re-run annually with new data.</span>
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<script src="assets/charts.js" defer></script>
+<script src="assets/site.js" defer></script>
+
+</body>
+</html>
