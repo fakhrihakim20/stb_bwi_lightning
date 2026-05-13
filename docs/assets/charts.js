@@ -147,82 +147,136 @@ fetchJSON("seasonality").then(d => {
   Plotly.newPlot("fig-seasonality", [trace], layout, baseConfig);
 });
 
-/* ---------- Figure 3: Forecast scenarios (with switcher) ---------- */
-let forecastData = null;
+/* ---------- Figure 3: Per-tower GFD profile — all years ----------- */
+let profileData   = null;
 let activeScenario = "Neutral";
 
-const scenarioColors = {
-  LaNina:  PALETTE.sageDeep,
-  Neutral: PALETTE.accent,
-  ElNino:  PALETTE.rust,
-  Marginalized: PALETTE.ink,
+// Historical year colors: warm spectrum sage → amber → rust, solid lines
+const HIST_COLORS = {
+  "2019": "rgba(133,166,143,0.72)",
+  "2020": "rgba(107,158,147,0.72)",
+  "2021": "rgba(157,184,112,0.78)",
+  "2022": "rgba(212,174, 68,0.92)",   // peak year — brighter
+  "2023": "rgba(196,130, 74,0.78)",
+  "2024": "rgba(168,106, 64,0.78)",
+  "2025": "rgba(168, 86, 56,0.78)",
+};
+const HIST_WIDTH = {
+  "2019":1.5,"2020":1.5,"2021":1.5,
+  "2022":2.5,                         // peak year — thicker
+  "2023":1.5,"2024":1.5,"2025":1.5,
 };
 
-function renderForecast(scenario) {
-  if (!forecastData) return;
-  const s = forecastData[scenario];
-  const color = scenarioColors[scenario];
+// Forecast year colors: ocean-blue spectrum, dashed lines
+const FC_COLORS = {
+  "2026": "rgba( 92,155,192,0.88)",
+  "2027": "rgba( 74,135,171,0.88)",
+  "2028": "rgba( 58,112,144,0.88)",
+  "2029": "rgba( 46, 91,120,0.88)",
+  "2030": "rgba( 34, 72, 96,0.88)",
+};
 
-  const bandFillColor = color
-    .replace("#", "")
-    .match(/.{1,2}/g)
-    .map(x => parseInt(x, 16))
-    .join(",");
+const HIST_YEARS = ["2019","2020","2021","2022","2023","2024","2025"];
+const FC_YEARS   = ["2026","2027","2028","2029","2030"];
 
-  const traces = [
-    // 95% band
-    {
+function buildProfileTraces(scenario) {
+  const ids = profileData.tower_ids;
+  const traces = [];
+
+  // 7 historical solid lines
+  HIST_YEARS.forEach(yr => {
+    traces.push({
       type: "scatter", mode: "lines",
-      x: [...s.year, ...s.year.slice().reverse()],
-      y: [...s.hi95, ...s.lo95.slice().reverse()],
-      fill: "toself",
-      fillcolor: `rgba(${bandFillColor},0.10)`,
-      line: { color: "rgba(0,0,0,0)" },
-      name: "95% PI",
-      hoverinfo: "skip",
-    },
-    // 80% band
-    {
+      name: yr,
+      x: ids,
+      y: profileData.historical[yr],
+      line: { color: HIST_COLORS[yr], width: HIST_WIDTH[yr], dash: "solid" },
+      hovertemplate: `<b>Tower %{x}</b><br>${yr} historical: %{y:.1f} fl/km²/yr<extra></extra>`,
+      legendgroup: "historical",
+      legendgrouptitle: yr === "2019" ? { text: "Historical" } : {},
+    });
+  });
+
+  // 5 forecast dashed lines for selected scenario
+  FC_YEARS.forEach(yr => {
+    traces.push({
       type: "scatter", mode: "lines",
-      x: [...s.year, ...s.year.slice().reverse()],
-      y: [...s.hi80, ...s.lo80.slice().reverse()],
-      fill: "toself",
-      fillcolor: `rgba(${bandFillColor},0.22)`,
-      line: { color: "rgba(0,0,0,0)" },
-      name: "80% PI",
-      hoverinfo: "skip",
-    },
-    // Median line
-    {
-      type: "scatter", mode: "lines+markers",
-      x: s.year, y: s.p50,
-      line: { color: color, width: 3 },
-      marker: { size: 10, color: color, line: { color: PALETTE.paper, width: 2 } },
-      name: scenario === "Marginalized" ? "Marginalised median"
-            : `${scenario} median`,
-      hovertemplate: "<b>%{x}</b><br>Mean GFD: %{y:.2f}<br>80% PI: [%{customdata[0]:.2f}, %{customdata[1]:.2f}]<extra></extra>",
-      customdata: s.year.map((_, i) => [s.lo80[i], s.hi80[i]]),
-    },
-  ];
-  const layout = {
-    ...baseLayout, height: 420,
-    yaxis: { ...baseLayout.yaxis, title: "Mean GFD across 281 towers (flashes/km²/yr, panel scale)" },
-    xaxis: { ...baseLayout.xaxis, dtick: 1, title: "" },
-    showlegend: false,
-  };
-  Plotly.react("fig-forecast", traces, layout, baseConfig);
+      name: yr + " (fcst)",
+      x: ids,
+      y: profileData.forecast[scenario][yr],
+      line: { color: FC_COLORS[yr], width: 2, dash: "dash" },
+      hovertemplate: `<b>Tower %{x}</b><br>${yr} forecast: %{y:.1f} fl/km²/yr<extra></extra>`,
+      legendgroup: "forecast",
+      legendgrouptitle: yr === "2026" ? { text: "Forecast" } : {},
+    });
+  });
+
+  return traces;
 }
 
-fetchJSON("forecast_scenarios").then(d => {
-  forecastData = d;
-  renderForecast(activeScenario);
-  // Tab wiring
+const profileLayout = () => ({
+  ...baseLayout,
+  height: 500,
+  yaxis: {
+    ...baseLayout.yaxis,
+    title: "GFD (flashes/km²/yr, panel scale)",
+    rangemode: "tozero",
+  },
+  xaxis: {
+    ...baseLayout.xaxis,
+    title: "Tower number",
+    tickmode: "array",
+    tickvals: [1, 50, 100, 150, 200, 250, 281],
+    ticktext: ["1","50","100","150","200","250","281"],
+  },
+  legend: {
+    orientation: "h",
+    y: -0.28, x: 0,
+    bgcolor: "rgba(0,0,0,0)",
+    font: { color: PALETTE.ink, size: 11 },
+    traceorder: "grouped",
+    groupclick: "toggleitem",
+  },
+  showlegend: true,
+  margin: { l: 64, r: 24, t: 24, b: 96 },
+});
+
+function renderProfile(scenario, isInitial) {
+  if (!profileData) return;
+
+  // Preserve per-trace visibility when switching scenario (not initial render)
+  let savedVisible = null;
+  if (!isInitial) {
+    const gd = document.getElementById("fig-forecast");
+    if (gd && gd.data && gd.data.length === 12) {
+      savedVisible = gd.data.map(t =>
+        t.visible === undefined ? true : t.visible
+      );
+    }
+  }
+
+  const traces = buildProfileTraces(scenario);
+
+  // Re-apply saved visibility — all traces so legend toggles survive a scenario switch
+  if (savedVisible) {
+    traces.forEach((t, i) => {
+      if (savedVisible[i] !== undefined) t.visible = savedVisible[i];
+    });
+  }
+
+  Plotly.react("fig-forecast", traces, profileLayout(), baseConfig);
+}
+
+fetchJSON("tower_gfd_profile").then(d => {
+  profileData = d;
+  renderProfile(activeScenario, true);
+  // Scenario-tab wiring
   document.querySelectorAll(".scenario-tabs .tab").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".scenario-tabs .tab").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       activeScenario = btn.dataset.scenario;
-      renderForecast(activeScenario);
+      renderProfile(activeScenario, false);
     });
   });
 });
