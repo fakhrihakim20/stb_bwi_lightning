@@ -93,6 +93,10 @@ class ModelDFit:
     shares_kamean_offset: pd.Series  # per-tower kA offset (additive)
     shares_kamax_offset: pd.Series
 
+    # Conversion factor from line count to line density (empirically fixed by
+    # collection geometry — Model C uses ~880 km² line collection area).
+    density_per_count: float = 1.0
+
     ridge_diagnostics: dict = field(default_factory=dict)
     notes: str = ""
 
@@ -201,6 +205,22 @@ def fit_model_d(
     shares_kamean_offset = _weighted_mean_by(panel_join, "res_mean_ka", "_w", "tower_id")
     shares_kamax_offset  = _weighted_mean_by(panel_join, "res_max_ka",  "_w", "tower_id")
 
+    # Empirical density-per-count ratio at the PER-TOWER level. The per-tower
+    # collection area in the Vaisala/IEEE convention is geometry-fixed, so
+    # ratio = density_i / count_i is nearly constant across (tower, year).
+    # We compute the weighted mean of per-tower per-year ratios.
+    if "density" in panel.columns and "count" in panel.columns:
+        ratio_series = (panel["density"] / panel["count"].replace(0, np.nan)).dropna()
+        if len(ratio_series):
+            w_series = panel.loc[ratio_series.index, "_w"].fillna(1.0)
+            density_per_count = float(
+                np.average(ratio_series.to_numpy(), weights=w_series.to_numpy())
+            )
+        else:
+            density_per_count = 1.0
+    else:
+        density_per_count = 1.0
+
     notes = ""
     fit = ModelDFit(
         half_life=float(half_life),
@@ -217,6 +237,7 @@ def fit_model_d(
         shares_density=shares_density,
         shares_kamean_offset=shares_kamean_offset,
         shares_kamax_offset=shares_kamax_offset,
+        density_per_count=density_per_count,
         ridge_diagnostics=ridge_diag,
         notes=notes,
     )
@@ -449,15 +470,19 @@ def predict_model_d(
         line_max_ka  = float(fit.max_ka_result.predict(design).iloc[0])
 
         for tid, s_c in fit.shares_count.items():
-            s_d = fit.shares_density.get(tid, fit.shares_density.mean())
             mk_off = fit.shares_kamean_offset.get(tid, 0.0)
             xk_off = fit.shares_kamax_offset.get(tid, 0.0)
+            # Tower count = line_count × share. Density is derived from count
+            # via the per-tower geometric ratio (Vaisala 3.125 km² per tower
+            # → ratio ≈ 0.32). Since this ratio is empirically constant across
+            # (tower, year), density_p50 = count_p50 × density_per_count.
+            tower_count = line_count * s_c
             out_rows.append({
                 "tower_id": int(tid),
                 "year": year,
                 "scenario": scenario,
-                "count_p50":   line_count * s_c,
-                "density_p50": line_count * s_d / max(line_count, 1e-12) * s_d,
+                "count_p50":   tower_count,
+                "density_p50": tower_count * fit.density_per_count,
                 "mean_ka_p50": line_mean_ka + float(mk_off),
                 "max_ka_p50":  line_max_ka  + float(xk_off),
                 "model": "D",
@@ -531,7 +556,7 @@ def model_d_bootstrap_one(
     p_nb = np.clip(mu / np.maximum(var, 1e-6), 1e-6, 1 - 1e-6)
     n_nb = np.clip(mu * p_nb / np.maximum(1 - p_nb, 1e-6), 1e-3, None)
     pred["count_sample"] = rng.negative_binomial(n_nb, p_nb).astype(float)
-    pred["density_sample"] = pred["count_sample"] / max(pred["count_p50"].sum(), 1e-9) * pred["density_p50"].sum()
+    pred["density_sample"] = pred["count_sample"] * fit_b.density_per_count
     pred["mean_ka_sample"] = pred["mean_ka_p50"] + rng.normal(0, 3.0, len(pred))
     pred["max_ka_sample"]  = pred["max_ka_p50"]  + rng.normal(0, 5.0, len(pred))
     return pred

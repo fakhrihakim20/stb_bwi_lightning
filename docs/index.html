@@ -36,6 +36,7 @@
       <li><a href="#data">Data</a></li>
       <li><a href="#method">Method</a></li>
       <li><a href="#forecast">Forecast</a></li>
+      <li><a href="#model-vs">Model C vs D</a></li>
       <li><a href="#hotspots">Hotspots</a></li>
       <li><a href="#caveats">Caveats</a></li>
       <li><a href="#downloads">Downloads</a></li>
@@ -138,10 +139,13 @@
         <span class="card-num">4</span>
         <h3>The forecast has honest limits.</h3>
         <p>
-          With only seven years of data, our model beats a plain average by
-          about <strong>2&nbsp;%</strong>. Use the forecast as a
-          <em>sensitivity guide</em> for the next five years, not as a
-          precise prediction. Caveats are listed in section 06.
+          With only seven years of data, our conservative
+          <strong>Model&nbsp;C</strong> beats a plain average by about
+          <strong>2&nbsp;%</strong>. A new experimental
+          <strong>Model&nbsp;D</strong> adds recency-weighted learning
+          and forecast-informed climate; section 06 compares the two
+          side-by-side. Use the forecast as a <em>sensitivity guide</em>,
+          not a precise prediction.
         </p>
       </div>
     </div>
@@ -271,10 +275,13 @@
     <span class="section-tag">04 · The Method</span>
     <h2 class="h2">How the forecast was built — in plain language.</h2>
     <p class="lede-narrow">
-      We tested several modelling approaches and kept the one that
-      actually worked at this sample size. The chosen approach has
-      <em>two stages</em>, mirroring how an engineer would reason
-      about it.
+      We ship <em>two</em> models side-by-side.
+      <strong style="color:var(--model-c-color)">Model&nbsp;C</strong>
+      is the conservative benchmark — equal weight on all seven years,
+      fixed climate scenarios. <strong style="color:var(--model-d-color)">Model&nbsp;D</strong>
+      is an experimental extension that weights recent years more
+      heavily and consumes operational climate outlooks when those
+      exist. Section 06 compares them honestly.
     </p>
 
     <ol class="steps">
@@ -284,10 +291,18 @@
         <p>
           We fit a simple statistical model to the seven historical line
           totals. Because seven points is very little, we let the model
-          decide whether to use the climate indices (ENSO, IOD) or
-          fall back to a plain average — and we measure how well it
-          would have predicted each historical year if that year had
-          been hidden.
+          decide (via AICc) whether to use the climate indices (Niño&nbsp;3.4,
+          IOD&nbsp;DMI) or fall back to a plain average — and we
+          measure how well it would have predicted each historical year
+          if that year had been hidden.
+        </p>
+        <p style="margin-top:0.6rem;">
+          <strong>Model&nbsp;D</strong> extends this stage by giving
+          recent years more weight (half-life tuned by cross-validation),
+          and ingests NOAA / IRI / BoM / BMKG forecast probabilities for
+          2026 where available. Beyond the operational forecast horizon
+          (~9&nbsp;overlapping 3-month seasons), Model&nbsp;D reverts to
+          documented persistence-decay toward the scenario prior.
         </p>
       </li>
       <li>
@@ -300,6 +315,12 @@
           share (with statistical shrinkage to avoid over-fitting one
           freak storm) and multiply it by Stage 1's annual forecast.
         </p>
+        <p style="margin-top:0.6rem;">
+          <strong>Model&nbsp;D</strong> additionally applies a low-degree
+          ridge correction using tower order along the line, elevation,
+          and distance to the Bali Strait — features that the share
+          calculation alone doesn't see.
+        </p>
       </li>
     </ol>
 
@@ -308,10 +329,11 @@
       <p>
         Deep-learning approaches like LSTMs or graph neural networks
         were explicitly considered and ruled out. They need hundreds
-        to thousands of training examples — we had seven. A more
-        complex model would have looked impressive but produced
-        unreliable numbers. We chose statistical honesty over technical
-        novelty.
+        to thousands of training examples — we had seven. The
+        "deep-learning-like" recency behaviour in Model&nbsp;D is
+        implemented transparently as exponential sample weighting,
+        not as a neural network. We chose statistical honesty over
+        technical novelty.
       </p>
     </div>
   </div>
@@ -325,11 +347,41 @@
     <span class="section-tag">05 · The 2026–2030 Forecast</span>
     <h2 class="h2">Three climate scenarios. Five years of forward projections.</h2>
     <p class="lede-narrow">
-      Because no one can predict ENSO five years ahead, we don't try.
-      Instead, we show what happens to the line under three explicit
-      climate assumptions, and provide an equal-weighted "marginalised"
-      best-guess.
+      Operational ENSO forecasts cover only the next
+      <strong>~9 overlapping 3-month seasons</strong> (about 2¼ years).
+      So we show the line under three explicit climate assumptions
+      (La&nbsp;Niña, Neutral, El&nbsp;Niño) and provide an equal-weighted
+      "marginalised" best-guess. Pick a model below — Model&nbsp;C uses
+      fixed scenario priors; Model&nbsp;D blends in operational outlooks
+      where available and falls back to priors beyond the horizon.
     </p>
+
+    <div class="model-pill" role="radiogroup" aria-label="Choose model">
+      <span class="model-pill-lbl">Model</span>
+      <button class="model-btn active" data-model="C" role="radio" aria-checked="true">
+        <span class="dot" aria-hidden="true"></span>
+        Model C <span class="sm">benchmark</span>
+      </button>
+      <button class="model-btn" data-model="D" role="radio" aria-checked="false">
+        <span class="dot" aria-hidden="true"></span>
+        Model D <span class="sm">forecast-informed</span>
+      </button>
+    </div>
+
+    <div id="fallback-banner" class="fallback-banner hidden">
+      <span class="banner-icon" aria-hidden="true">●</span>
+      <div class="banner-body">
+        <span class="banner-tag">Model&nbsp;D notice</span>
+        <span id="fallback-banner-msg">
+          No live forecast data was available at build time. Model&nbsp;D
+          fell back to documented scenario priors with
+          <code>fallback_status=true</code>. To refresh, populate
+          <code>cache/bmkg_outlook.csv</code> or re-run with network access
+          to NOAA / IRI / BoM endpoints, then re-run
+          <code>python run_model_d.py</code>.
+        </span>
+      </div>
+    </div>
 
     <div class="scenario-tabs">
       <button class="tab active" data-scenario="Neutral">Neutral</button>
@@ -371,10 +423,129 @@
       </div>
       <div class="kpi double-bezel">
         <div class="card-inner">
-          <span class="kpi-lbl">Model skill vs plain average</span>
+          <span class="kpi-lbl">Model C skill vs plain average</span>
           <span class="kpi-val">+ 2 %</span>
-          <span class="kpi-foot">Two-stage model lowers cross-validation error 2 % over climatology.</span>
+          <span class="kpi-foot">Model&nbsp;C lowers cross-validation error 2&nbsp;% over a flat seven-year climatology. Model&nbsp;D's CV skill is reported in section 06.</span>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<!-- MODEL C vs D COMPARISON                                              -->
+<!-- =================================================================== -->
+<section id="model-vs" class="band band-cream">
+  <div class="container reveal">
+    <span class="section-tag">06 · Model C vs Model D</span>
+    <h2 class="h2">Two models, one transparent comparison.</h2>
+    <p class="lede-narrow">
+      A new model is only worth adopting if it earns its complexity in
+      cross-validation. We report Model&nbsp;D's skill alongside
+      Model&nbsp;A (climatology) and Model&nbsp;C (the v1.0 benchmark) —
+      and we publish the tower-level differences so engineers can see
+      where the two disagree.
+    </p>
+
+    <!-- 6a. Comparison table (static) -->
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Aspect</th>
+          <th>Model C — benchmark</th>
+          <th>Model D — experimental</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Climate learning</td>
+          <td>Limited historical climate relationship</td>
+          <td>Explicit Niño&nbsp;3.4 / DMI variables where skillful</td>
+        </tr>
+        <tr>
+          <td>Future climate input</td>
+          <td>Fixed La&nbsp;Niña / Neutral / El&nbsp;Niño priors</td>
+          <td>NOAA / IRI / BoM / BMKG probabilities where available</td>
+        </tr>
+        <tr>
+          <td>Historical weighting</td>
+          <td>Equal weight on all 7 years</td>
+          <td>Recency-weighted, half-life tuned by CV</td>
+        </tr>
+        <tr>
+          <td>Spatial allocation</td>
+          <td>Shrunken historical tower share</td>
+          <td>Shrunken + ridge correction (tower order, elevation, distance-to-coast)</td>
+        </tr>
+        <tr>
+          <td>Best use</td>
+          <td>Conservative benchmark, stable hotspot ranking</td>
+          <td>Rolling planning when forecast outlooks are fresh</td>
+        </tr>
+        <tr>
+          <td>Risk</td>
+          <td>May miss recent regime shifts</td>
+          <td>Can overreact to noisy recent years or uncertain forecasts</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 6b. CV skill tiles -->
+    <h3 class="card-h" style="margin-top:2.5rem;">Cross-validation skill (LOYO)</h3>
+    <p class="muted small">
+      Mean error across all 7 leave-one-year-out folds. Lower is better.
+      <strong>A</strong> = climatology, <strong>C</strong> = benchmark,
+      <strong>D</strong> = forecast-informed.
+    </p>
+    <div id="skill-grid" class="skill-grid">
+      <!-- populated by charts.js -->
+    </div>
+
+    <!-- 6c. Line-level ribbon overlay -->
+    <h3 class="card-h" style="margin-top:1.5rem;">Line-level forecast — C vs D, Neutral scenario</h3>
+    <div class="card double-bezel">
+      <div class="card-inner">
+        <div id="fig-compare-line" class="plotly-fig"></div>
+        <p class="fig-cap">
+          <strong>Figure 4.</strong> Mean per-tower GFD across the 281
+          towers for each forecast year, under the Neutral scenario.
+          <span style="color:var(--model-c-color)">Model C</span> and
+          <span style="color:var(--model-d-color)">Model D</span> are
+          plotted side by side with their 80% prediction intervals.
+          A gap between the two reflects the recency-weighting effect.
+        </p>
+      </div>
+    </div>
+
+    <!-- 6d. Top-20 paired + Jaccard -->
+    <h3 class="card-h" style="margin-top:2rem;">Top-20 tower overlap</h3>
+    <div id="top20-jaccard-pill" class="jaccard-pill">
+      <span class="jp-num">—</span>
+      <span class="jp-lbl">Jaccard overlap (C ∩ D / C ∪ D)</span>
+    </div>
+    <div class="card double-bezel">
+      <div class="card-inner">
+        <div id="fig-compare-top20" class="plotly-fig"></div>
+        <p class="fig-cap">
+          <strong>Figure 5.</strong> Top-20 towers ranked by predicted
+          5-year mean GFD under each model. A high Jaccard overlap
+          means both models flag the same hotspots; a low one means
+          the spatial picture changes meaningfully between models.
+        </p>
+      </div>
+    </div>
+
+    <!-- 6e. Per-tower delta scatter -->
+    <h3 class="card-h" style="margin-top:2rem;">Where the models disagree, by tower</h3>
+    <div class="card double-bezel">
+      <div class="card-inner">
+        <div id="fig-compare-delta" class="plotly-fig"></div>
+        <p class="fig-cap">
+          <strong>Figure 6.</strong> Per-tower difference
+          (Model D − Model C) in 5-year mean GFD, plotted against
+          elevation. Positive values mean Model D forecasts more
+          lightning than Model C for that tower; negative means less.
+        </p>
       </div>
     </div>
   </div>
@@ -385,7 +556,7 @@
 <!-- =================================================================== -->
 <section id="hotspots" class="band">
   <div class="container reveal">
-    <span class="section-tag">06 · Where the risk concentrates</span>
+    <span class="section-tag">07 · Where the risk concentrates</span>
     <h2 class="h2">Interactive hotspot map &amp; top-20 ranking.</h2>
     <p class="lede-narrow">
       The interactive map below shows every tower coloured by its
@@ -415,7 +586,7 @@
 <!-- =================================================================== -->
 <section id="caveats" class="band band-cream">
   <div class="container reveal">
-    <span class="section-tag">07 · Honest limitations</span>
+    <span class="section-tag">08 · Honest limitations</span>
     <h2 class="h2">What this study does <em>not</em> claim.</h2>
     <p class="lede-narrow">
       Engineering reports often hide their uncertainty in footnotes.
@@ -429,10 +600,12 @@
           <span class="cav-num">A</span>
           <h3>Skill over climatology is small.</h3>
           <p>
-            Cross-validation shows our two-stage model lowers prediction
-            error by only ~2&nbsp;% compared to a plain seven-year
-            average. With seven years of data, a fancier model would
-            over-fit. Treat the climate scenarios as a
+            Cross-validation shows <strong>Model&nbsp;C</strong> lowers
+            prediction error by only ~2&nbsp;% compared to a plain
+            seven-year average. Model&nbsp;D's CV numbers are reported
+            in section 06 and may improve when more years accrue.
+            With seven years of data, a fancier model would over-fit.
+            Treat both models' climate scenarios as a
             <em>sensitivity range</em>, not a precise prediction.
           </p>
         </div>
@@ -442,11 +615,14 @@
           <span class="cav-num">B</span>
           <h3>The 2025 hold-out test was weak.</h3>
           <p>
-            When we trained on 2019–2024 and predicted 2025, the
-            tower-by-tower agreement was modest (correlation ≈ 0.24).
-            Per-tower allocation is noisier than we would like — use the
-            <em>rank order</em> of hotspots more than the absolute
-            numbers.
+            When we trained <strong>Model&nbsp;C</strong> on 2019–2024
+            and predicted 2025, the tower-by-tower agreement was modest
+            (correlation ≈ 0.24). Per-tower allocation is noisier than
+            we would like — use the <em>rank order</em> of hotspots more
+            than the absolute numbers. Model&nbsp;D's historical CV
+            uses <em>observed</em> climate as a "perfect-forecast" proxy;
+            its real prospective skill will be lower and remains
+            unknown until 2026 is observed.
           </p>
         </div>
       </article>
@@ -478,6 +654,24 @@
           </p>
         </div>
       </article>
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">E</span>
+          <h3>Operational ENSO forecasts have a limited horizon.</h3>
+          <p>
+            NOAA / IRI / BoM publish ENSO probability forecasts for
+            <strong>~9 overlapping 3-month seasons</strong> (~2.25 years).
+            Beyond that horizon Model&nbsp;D reverts to documented
+            persistence-decay toward the scenario prior; the per-year
+            climate input source is stamped in
+            <code>outputs/forecast_climate_stamps.csv</code> so consumers
+            can audit which years are forecast-informed vs prior-driven.
+            Model&nbsp;D must be re-run whenever a fresh outlook is
+            published — its 2026 numbers should not be treated as
+            stable for the full 5-year horizon.
+          </p>
+        </div>
+      </article>
     </div>
   </div>
 </section>
@@ -487,7 +681,7 @@
 <!-- =================================================================== -->
 <section id="recommendations" class="band">
   <div class="container narrow reveal">
-    <span class="section-tag">08 · Recommendations</span>
+    <span class="section-tag">09 · Recommendations</span>
     <h2 class="h2">What we would actually do with this.</h2>
     <ol class="recos">
       <li>
@@ -515,7 +709,7 @@
 <!-- =================================================================== -->
 <section id="downloads" class="band band-paper">
   <div class="container reveal">
-    <span class="section-tag">09 · Downloads</span>
+    <span class="section-tag">10 · Downloads</span>
     <h2 class="h2">All deliverables, ready to use.</h2>
 
     <div class="dl-grid">
@@ -614,8 +808,8 @@
     </div>
     <div class="foot-bottom">
       <span class="small muted">© 2026 · Re-run annually with new data.</span>
-      <a href="https://github.com/fakhrihakim20/stb_bwi_lightning/releases/tag/v1.0.0"
-         target="_blank" rel="noopener" class="version-chip">v1.0.0</a>
+      <a href="https://github.com/fakhrihakim20/stb_bwi_lightning/releases/tag/v1.2.0"
+         target="_blank" rel="noopener" class="version-chip">v1.2.0</a>
     </div>
   </div>
 </footer>

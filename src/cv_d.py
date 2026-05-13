@@ -95,8 +95,7 @@ def tune_hyperparameters(
                     )
                     # Predict the held year using its OBSERVED climate
                     # (perfect-forecast proxy — documented in the website caveat)
-                    climate_held = (l_tr.append(line_year[line_year["year"] == held])
-                                    if False else line_year[line_year["year"] == held])
+                    climate_held = line_year[line_year["year"] == held]
                     climate_in = pd.DataFrame([{
                         "year": held,
                         "scenario": "Neutral",

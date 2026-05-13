@@ -148,8 +148,15 @@ fetchJSON("seasonality").then(d => {
 });
 
 /* ---------- Figure 3: Per-tower GFD profile — all years ----------- */
-let profileData   = null;
-let activeScenario = "Neutral";
+// Model D extension (v1.2): two profile datasets ("C" and optional "D")
+// driven by a model-pill above the scenario tabs.
+let profileData      = null;     // Model C profile (legacy)
+let profileDataD     = null;     // Model D profile (may be null)
+let activeScenario   = "Neutral";
+let activeModel      = "C";       // "C" or "D"
+
+const MODEL_C_COLOR = "#B8854F";
+const MODEL_D_COLOR = "#4A7A8C";
 
 // Historical year colors: warm spectrum sage → amber → rust, solid lines
 const HIST_COLORS = {
@@ -179,8 +186,10 @@ const FC_COLORS = {
 const HIST_YEARS = ["2019","2020","2021","2022","2023","2024","2025"];
 const FC_YEARS   = ["2026","2027","2028","2029","2030"];
 
-function buildProfileTraces(scenario) {
-  const ids = profileData.tower_ids;
+function buildProfileTraces(scenario, model) {
+  // Historical data is identical for both models — comes from observations
+  const src = (model === "D" && profileDataD) ? profileDataD : profileData;
+  const ids = src.tower_ids;
   const traces = [];
 
   // 7 historical solid lines
@@ -189,7 +198,7 @@ function buildProfileTraces(scenario) {
       type: "scatter", mode: "lines",
       name: yr,
       x: ids,
-      y: profileData.historical[yr],
+      y: src.historical[yr],
       line: { color: HIST_COLORS[yr], width: HIST_WIDTH[yr], dash: "solid" },
       hovertemplate: `<b>Tower %{x}</b><br>${yr} historical: %{y:.1f} fl/km²/yr<extra></extra>`,
       legendgroup: "historical",
@@ -197,17 +206,21 @@ function buildProfileTraces(scenario) {
     });
   });
 
-  // 5 forecast dashed lines for selected scenario
+  // 5 forecast dashed lines for selected (scenario, model)
+  const fc_for_scenario = src.forecast[scenario] || {};
+  const modelLabel = (model === "D") ? "Model D" : "Model C";
   FC_YEARS.forEach(yr => {
+    const ys = fc_for_scenario[yr];
+    if (!ys) return;
     traces.push({
       type: "scatter", mode: "lines",
-      name: yr + " (fcst)",
+      name: `${yr} (${modelLabel})`,
       x: ids,
-      y: profileData.forecast[scenario][yr],
+      y: ys,
       line: { color: FC_COLORS[yr], width: 2, dash: "dash" },
-      hovertemplate: `<b>Tower %{x}</b><br>${yr} forecast: %{y:.1f} fl/km²/yr<extra></extra>`,
+      hovertemplate: `<b>Tower %{x}</b><br>${yr} forecast (${modelLabel}): %{y:.1f} fl/km²/yr<extra></extra>`,
       legendgroup: "forecast",
-      legendgrouptitle: yr === "2026" ? { text: "Forecast" } : {},
+      legendgrouptitle: yr === "2026" ? { text: `Forecast — ${modelLabel}` } : {},
     });
   });
 
@@ -241,10 +254,14 @@ const profileLayout = () => ({
   margin: { l: 64, r: 24, t: 24, b: 96 },
 });
 
-function renderProfile(scenario, isInitial) {
+function renderProfile(scenario, model, isInitial) {
   if (!profileData) return;
+  if (model === "D" && !profileDataD) {
+    // Model D unavailable — silently keep Model C
+    model = "C";
+  }
 
-  // Preserve per-trace visibility when switching scenario (not initial render)
+  // Preserve per-trace visibility across both scenario AND model switches
   let savedVisible = null;
   if (!isInitial) {
     const gd = document.getElementById("fig-forecast");
@@ -255,9 +272,8 @@ function renderProfile(scenario, isInitial) {
     }
   }
 
-  const traces = buildProfileTraces(scenario);
+  const traces = buildProfileTraces(scenario, model);
 
-  // Re-apply saved visibility — all traces so legend toggles survive a scenario switch
   if (savedVisible) {
     traces.forEach((t, i) => {
       if (savedVisible[i] !== undefined) t.visible = savedVisible[i];
@@ -267,17 +283,46 @@ function renderProfile(scenario, isInitial) {
   Plotly.react("fig-forecast", traces, profileLayout(), baseConfig);
 }
 
+// Load Model C profile (always)
 fetchJSON("tower_gfd_profile").then(d => {
   profileData = d;
-  renderProfile(activeScenario, true);
-  // Scenario-tab wiring
+  renderProfile(activeScenario, activeModel, true);
+  // Scenario-tab wiring (kept here so it survives even if D fails to load)
   document.querySelectorAll(".scenario-tabs .tab").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".scenario-tabs .tab").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       activeScenario = btn.dataset.scenario;
-      renderProfile(activeScenario, false);
+      renderProfile(activeScenario, activeModel, false);
     });
+  });
+});
+
+// Try to load Model D profile (optional)
+fetch("figures/tower_gfd_profile_d.json")
+  .then(r => r.ok ? r.json() : null)
+  .then(d => {
+    if (!d) return;
+    profileDataD = d;
+    // Enable the Model D button now that data is loaded
+    document.querySelectorAll('.model-btn[data-model="D"]').forEach(b => {
+      b.disabled = false;
+    });
+  })
+  .catch(() => { /* silent — Model D rendering simply falls back to C */ });
+
+// Model-pill wiring (model toggle for Figure 3)
+document.querySelectorAll(".model-pill .model-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const m = btn.dataset.model;
+    document.querySelectorAll(".model-pill .model-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-checked", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-checked", "true");
+    activeModel = m;
+    renderProfile(activeScenario, activeModel, false);
   });
 });
 
@@ -450,4 +495,213 @@ waitForLeaflet(() => {
     };
     legend.addTo(map);
   });
+});
+
+/* ===================================================================== */
+/* Model D extension (v1.2) — Section 06 comparison charts               */
+/* ===================================================================== */
+
+// Helper: tolerate optional comparison JSONs (Model D may be absent)
+function tryFetchJSON(name) {
+  return fetch(`figures/${name}.json`)
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null);
+}
+
+// ---------- Skill tiles (A / C / D, LOYO mean) ----------
+tryFetchJSON("comparison_skill").then(d => {
+  if (!d) return;
+  const grid = document.getElementById("skill-grid");
+  if (!grid) return;
+
+  // Pivot: rows = target × metric, columns = model
+  const targets = ["count", "density"];
+  const metrics = [
+    { key: "RMSE", label: "RMSE (count)", lowerBetter: true,  target: "count" },
+    { key: "RMSE", label: "RMSE (density)", lowerBetter: true, target: "density" },
+    { key: "MAE",  label: "MAE (count)",  lowerBetter: true,  target: "count" },
+    { key: "CRPS", label: "CRPS (density)", lowerBetter: true, target: "density" },
+  ];
+
+  const html = metrics.map(m => {
+    const cell = mdl =>
+      d.rows.find(r => r.scheme === "loyo" && r.target === m.target && r.model === mdl);
+    const ra = cell("A"), rc = cell("C"), rd = cell("D");
+    const va = ra && ra[m.key] != null ? ra[m.key].toFixed(2) : "—";
+    const vc = rc && rc[m.key] != null ? rc[m.key].toFixed(2) : "—";
+    const vd = rd && rd[m.key] != null ? rd[m.key].toFixed(2) : "—";
+    return `
+      <div class="skill-tile">
+        <span class="lbl">${m.label}</span>
+        <div class="vals">
+          <span class="v-a" title="Model A — climatology">${va}</span>
+          <span class="v-c" title="Model C — benchmark">${vc}</span>
+          <span class="v-d" title="Model D — forecast-informed">${vd}</span>
+        </div>
+        <span class="sub">A · C · D &nbsp;·&nbsp; lower is better</span>
+      </div>
+    `;
+  }).join("");
+  grid.innerHTML = html;
+});
+
+// ---------- Model D meta (fallback banner + provider info) ----------
+tryFetchJSON("model_d_meta").then(d => {
+  if (!d) return;
+  const banner = document.getElementById("fallback-banner");
+  if (!banner) return;
+
+  if (d.is_reverted_to_c) {
+    document.getElementById("fallback-banner-msg").innerHTML =
+      "On the current 7-year sample, recency weighting added no out-of-sample skill — Model D collapsed to a climatology-equivalent fit. Outputs are flagged with <code>notes='reverted_to_C_no_recency_skill'</code> and the C and D forecasts will look essentially identical.";
+    banner.classList.remove("hidden");
+  } else if (d.all_fallback) {
+    // Already correct default banner; just unhide
+    banner.classList.remove("hidden");
+  }
+});
+
+// ---------- Comparison line ribbon (C vs D, Neutral, 2026–2030) ----------
+tryFetchJSON("comparison_line").then(d => {
+  if (!d) return;
+  const mount = document.getElementById("fig-compare-line");
+  if (!mount) return;
+
+  const cNeutral = (d.C && d.C.Neutral) ? d.C.Neutral : null;
+  const dNeutral = (d.D && d.D.Neutral) ? d.D.Neutral : null;
+  if (!cNeutral || !dNeutral) return;
+
+  const traces = [];
+  // Model C ribbon
+  traces.push({
+    type: "scatter", mode: "lines",
+    x: [...cNeutral.year, ...cNeutral.year.slice().reverse()],
+    y: [...cNeutral.hi80, ...cNeutral.lo80.slice().reverse()],
+    fill: "toself",
+    fillcolor: "rgba(184,133,79,0.18)",
+    line: { color: "rgba(0,0,0,0)" },
+    name: "Model C 80% PI",
+    hoverinfo: "skip",
+  });
+  // Model D ribbon
+  traces.push({
+    type: "scatter", mode: "lines",
+    x: [...dNeutral.year, ...dNeutral.year.slice().reverse()],
+    y: [...dNeutral.hi80, ...dNeutral.lo80.slice().reverse()],
+    fill: "toself",
+    fillcolor: "rgba(74,122,140,0.20)",
+    line: { color: "rgba(0,0,0,0)" },
+    name: "Model D 80% PI",
+    hoverinfo: "skip",
+  });
+  // Median lines
+  traces.push({
+    type: "scatter", mode: "lines+markers",
+    x: cNeutral.year, y: cNeutral.p50,
+    line: { color: MODEL_C_COLOR, width: 3 },
+    marker: { size: 9, color: MODEL_C_COLOR, line: { color: PALETTE.paper, width: 2 } },
+    name: "Model C median",
+    hovertemplate: "<b>%{x}</b><br>Model C GFD: %{y:.2f}<extra></extra>",
+  });
+  traces.push({
+    type: "scatter", mode: "lines+markers",
+    x: dNeutral.year, y: dNeutral.p50,
+    line: { color: MODEL_D_COLOR, width: 3, dash: "dot" },
+    marker: { size: 9, color: MODEL_D_COLOR, line: { color: PALETTE.paper, width: 2 } },
+    name: "Model D median",
+    hovertemplate: "<b>%{x}</b><br>Model D GFD: %{y:.2f}<extra></extra>",
+  });
+
+  const layout = {
+    ...baseLayout, height: 400,
+    yaxis: { ...baseLayout.yaxis, title: "Mean GFD (flashes/km²/yr)" },
+    xaxis: { ...baseLayout.xaxis, dtick: 1, title: "Year" },
+    legend: { ...baseLayout.legend, y: -0.22 },
+  };
+  Plotly.newPlot("fig-compare-line", traces, layout, baseConfig);
+});
+
+// ---------- Top-20 paired bars + Jaccard pill ----------
+tryFetchJSON("comparison_top20").then(d => {
+  if (!d) return;
+  const mount = document.getElementById("fig-compare-top20");
+  const pill = document.getElementById("top20-jaccard-pill");
+  if (!mount) return;
+
+  // Jaccard
+  if (pill) {
+    pill.querySelector(".jp-num").textContent = (d.jaccard ?? 0).toFixed(2);
+  }
+
+  // Paired bars on the union of top-20s
+  const union = d.union_ids;
+  const labels = union.map(t => `Tower ${t}`);
+  const cVals = union.map(t => d.C_values[String(t)] ?? null);
+  const dVals = union.map(t => d.D_values[String(t)] ?? null);
+
+  const traces = [
+    {
+      type: "bar", orientation: "h",
+      x: cVals, y: labels,
+      marker: { color: MODEL_C_COLOR, opacity: 0.85 },
+      name: "Model C",
+      hovertemplate: "<b>%{y}</b><br>Model C: %{x:.2f} fl/km²/yr<extra></extra>",
+    },
+    {
+      type: "bar", orientation: "h",
+      x: dVals, y: labels,
+      marker: { color: MODEL_D_COLOR, opacity: 0.85 },
+      name: "Model D",
+      hovertemplate: "<b>%{y}</b><br>Model D: %{x:.2f} fl/km²/yr<extra></extra>",
+    },
+  ];
+  const layout = {
+    ...baseLayout,
+    height: Math.max(360, 22 * union.length + 80),
+    barmode: "group",
+    margin: { l: 96, r: 32, t: 16, b: 56 },
+    xaxis: { ...baseLayout.xaxis, title: "5-yr mean GFD (Neutral, flashes/km²/yr)" },
+    yaxis: { ...baseLayout.yaxis, autorange: "reversed",
+             tickfont: { size: 10, color: PALETTE.ink } },
+    legend: { ...baseLayout.legend, y: -0.18 },
+  };
+  Plotly.newPlot("fig-compare-top20", traces, layout, baseConfig);
+});
+
+// ---------- Per-tower delta scatter (D - C vs elevation) ----------
+tryFetchJSON("comparison_delta").then(d => {
+  if (!d || !d.rows) return;
+  const mount = document.getElementById("fig-compare-delta");
+  if (!mount) return;
+
+  const xs = d.rows.map(r => r.elev);
+  const ys = d.rows.map(r => r.delta);
+  const ids = d.rows.map(r => r.id);
+  const colors = ys.map(v => v >= 0 ? MODEL_D_COLOR : "rgba(168,86,56,0.85)");
+
+  const trace = {
+    type: "scatter", mode: "markers",
+    x: xs, y: ys,
+    marker: {
+      size: 7,
+      color: colors,
+      line: { color: "rgba(46,38,31,0.18)", width: 0.5 },
+    },
+    text: ids.map(i => `Tower ${i}`),
+    hovertemplate: "%{text}<br>Elev: %{x} m<br>Δ (D − C): %{y:.2f}<extra></extra>",
+  };
+  // Zero line
+  const zero = {
+    type: "scatter", mode: "lines",
+    x: [Math.min(...xs), Math.max(...xs)], y: [0, 0],
+    line: { color: "rgba(46,38,31,0.2)", width: 1, dash: "dot" },
+    hoverinfo: "skip", showlegend: false,
+  };
+  const layout = {
+    ...baseLayout, height: 380,
+    xaxis: { ...baseLayout.xaxis, title: "Tower elevation (m)" },
+    yaxis: { ...baseLayout.yaxis, title: "ΔGFD: Model D − Model C (flashes/km²/yr)" },
+    showlegend: false,
+  };
+  Plotly.newPlot("fig-compare-delta", [zero, trace], layout, baseConfig);
 });

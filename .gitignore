@@ -13,6 +13,10 @@ __pycache__/
 # Transient executed notebook (the source .ipynb is what we version-control)
 lightning_gfd_forecast.executed.ipynb
 
+# Model D transient logs (regenerable; not part of the deliverable)
+run_model_d.log
+run_model_d.err
+
 # Local plan file (lives in user's Claude folder)
 *.code-workspace
 .vscode/
