@@ -149,7 +149,9 @@ write_json("map_towers", {
 # 5. Monthly seasonality (line-aggregate, averaged across years)
 # ---------------------------------------------------------------------------
 monthly = pd.read_csv(DATA / "monthly_line.csv", parse_dates=["period_start"])
-monthly = monthly[~monthly["is_partial_month"]].copy()
+# NOTE: do NOT filter by is_partial_month here — tidy_data.py flags all December
+# rows as partial (trailing export period) but they are real full-month observations.
+# Filtering would silently drop December from every year.
 monthly["month"] = monthly["period_start"].dt.month
 season = (monthly.groupby("month")["count"]
                   .agg(["mean", "std", "count"])
