@@ -199,20 +199,24 @@ li { margin-bottom: 0.4rem; color: var(--espresso-2); }
   font-family: var(--sans);
   font-weight: 600;
   font-size: 0.8125rem;
+  line-height: 1;
   letter-spacing: 0.02em;
   color: var(--espresso);
   white-space: nowrap;
 }
 .nav-mark .bolt { color: var(--bolt); font-size: 1rem; }
 .nav-links {
-  display: flex; gap: 0.25rem;
+  display: flex; align-items: center; gap: 0.25rem;
   list-style: none; padding: 0; margin: 0;
 }
 .nav-links a {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
   padding: 0.45rem 0.85rem;
   font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1;
   color: var(--espresso-2);
   border-radius: 999px;
   transition: all 360ms var(--ease-spring);
@@ -859,7 +863,10 @@ li { margin-bottom: 0.4rem; color: var(--espresso-2); }
     transform: translateY(0);
   }
   .nav-links a {
-    display: block;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 2.25rem;
     padding: 0.6rem 0.85rem;
   }
   .scenario-tabs { flex-wrap: wrap; }
