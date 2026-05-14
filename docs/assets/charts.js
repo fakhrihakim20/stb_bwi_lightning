@@ -311,11 +311,11 @@ fetch("figures/tower_gfd_profile_d.json")
   })
   .catch(() => { /* silent — Model D rendering simply falls back to C */ });
 
-// Model-pill wiring (model toggle for Figure 3)
-document.querySelectorAll(".model-pill .model-btn").forEach(btn => {
+// Model-pill wiring — Section 05 forecast pill ONLY (excludes hotspot pill)
+document.querySelectorAll(".model-pill:not(.hotspot-model-pill) .model-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const m = btn.dataset.model;
-    document.querySelectorAll(".model-pill .model-btn").forEach(b => {
+    document.querySelectorAll(".model-pill:not(.hotspot-model-pill) .model-btn").forEach(b => {
       b.classList.remove("active");
       b.setAttribute("aria-checked", "false");
     });
@@ -326,14 +326,23 @@ document.querySelectorAll(".model-pill .model-btn").forEach(btn => {
   });
 });
 
-/* ---------- Figure 4: Top-20 ranking ------------------------------ */
-fetchJSON("top20").then(d => {
+/* ---------- Figure 4: Top-20 ranking (model-aware) ---------------- */
+// Hotspot section 07 carries its own model toggle. The top-20 chart and
+// the Leaflet map both read from this state.
+let activeHotspotModel = "C";
+let top20DataC = null;
+let top20DataD = null;
+
+function drawTop20(model) {
+  const d = (model === "D" && top20DataD) ? top20DataD : top20DataC;
+  if (!d) return;
+  const color = (model === "D") ? MODEL_D_COLOR : MODEL_C_COLOR;
   const trace = {
     type: "bar",
     orientation: "h",
     x: d.p50,
     y: d.tower_id.map(t => `Tower ${t}`),
-    marker: { color: PALETTE.accent, opacity: 0.9, line: { width: 0 } },
+    marker: { color: color, opacity: 0.9, line: { width: 0 } },
     error_x: {
       type: "data",
       array:    d.hi80.map((h, i) => h - d.p50[i]),
@@ -344,14 +353,14 @@ fetchJSON("top20").then(d => {
     text: d.p50.map(v => v.toFixed(2)),
     textposition: "outside",
     textfont: { color: PALETTE.ink, size: 11 },
-    hovertemplate: "<b>%{y}</b><br>GFD = %{x:.2f} flashes/km²/yr<br>80%% PI: [%{customdata[0]:.2f}, %{customdata[1]:.2f}]<extra></extra>",
+    hovertemplate: `<b>%{y}</b><br>Model ${model} GFD = %{x:.2f} flashes/km²/yr<br>80%% PI: [%{customdata[0]:.2f}, %{customdata[1]:.2f}]<extra></extra>`,
     customdata: d.tower_id.map((_, i) => [d.lo80[i], d.hi80[i]]),
   };
   const layout = {
     ...baseLayout,
     height: 560,
     margin: { l: 96, r: 64, t: 24, b: 48 },
-    xaxis: { ...baseLayout.xaxis, title: "5-yr mean GFD (Neutral, flashes/km²/yr)" },
+    xaxis: { ...baseLayout.xaxis, title: `5-yr mean GFD (Neutral, flashes/km²/yr) — Model ${model}` },
     yaxis: {
       ...baseLayout.yaxis,
       autorange: "reversed",
@@ -359,8 +368,17 @@ fetchJSON("top20").then(d => {
     },
     showlegend: false,
   };
-  Plotly.newPlot("fig-top20", [trace], layout, baseConfig);
+  Plotly.react("fig-top20", [trace], layout, baseConfig);
+}
+
+fetchJSON("top20").then(d => {
+  top20DataC = d;
+  drawTop20(activeHotspotModel);
 });
+fetch("figures/top20_d.json")
+  .then(r => r.ok ? r.json() : null)
+  .then(d => { if (d) top20DataD = d; })
+  .catch(() => {});
 
 /* ---------- Leaflet map ------------------------------------------- */
 function waitForLeaflet(cb) {
@@ -368,15 +386,133 @@ function waitForLeaflet(cb) {
   setTimeout(() => waitForLeaflet(cb), 80);
 }
 
+/* Map data is loaded for both models. The selected model's data drives
+ * the marker layers; toggling rebuilds the markers in place.
+ */
+let leafletMap = null;
+let mapDataC = null;
+let mapDataD = null;
+let mapLayerGroups = null;    // { LaNina, Neutral, ElNino }
+let mapLayerControl = null;
+let mapLegendControl = null;
+let mapActiveScenarioName = "Neutral";
+
+function colorRamp(t) {
+  const stops = [
+    [0,   [143, 163, 142]],
+    [0.5, [184, 133,  79]],
+    [1,   [168,  86,  56]],
+  ];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [a, ac] = stops[i], [b, bc] = stops[i + 1];
+    if (t <= b) {
+      const u = (t - a) / (b - a);
+      const c = ac.map((ch, k) => Math.round(ch + (bc[k] - ch) * u));
+      return `rgb(${c.join(",")})`;
+    }
+  }
+  return "rgb(168,86,56)";
+}
+
+function buildMapMarkers(model) {
+  if (!leafletMap) return;
+  const d = (model === "D" && mapDataD) ? mapDataD : mapDataC;
+  if (!d) return;
+
+  // Remove any prior marker layers and legend so we can rebuild cleanly
+  if (mapLayerGroups) {
+    Object.values(mapLayerGroups).forEach(g => leafletMap.removeLayer(g));
+  }
+  if (mapLayerControl) leafletMap.removeControl(mapLayerControl);
+  if (mapLegendControl) leafletMap.removeControl(mapLegendControl);
+
+  const vals = d.towers.map(t => t.neutral);
+  const vmin = Math.min(...vals);
+  const vmax = Math.max(...vals);
+  const lerp = (v) => Math.min(1, Math.max(0, (v - vmin) / (vmax - vmin)));
+  const colorAt = (v) => colorRamp(lerp(v));
+  const accentForModel = (model === "D") ? "#4A7A8C" : "#B8854F";
+
+  mapLayerGroups = {
+    LaNina:  L.layerGroup(),
+    Neutral: L.layerGroup(),
+    ElNino:  L.layerGroup(),
+  };
+
+  d.towers.forEach(t => {
+    ["LaNina", "Neutral", "ElNino"].forEach(sc => {
+      const v = sc === "LaNina" ? t.lanina : sc === "Neutral" ? t.neutral : t.elnino;
+      const radius = 4 + 8 * lerp(v);
+      const popup = `
+        <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #2E261F; min-width: 200px;">
+          <div style="font-family: 'Fraunces', serif; font-size: 17px; font-weight: 500; margin-bottom: 6px;">Tower ${t.id}</div>
+          <div style="font-size: 11px; color: #6B6157; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;">${sc} · 5-yr mean · Model ${model}</div>
+          <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px;">
+            <span style="color: #6B6157;">GFD (median):</span>
+            <strong style="color: ${accentForModel}; font-size: 15px;">${v.toFixed(2)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 12px; color: #6B6157;">
+            <span>80% interval (Neutral):</span>
+            <span>[${t.lo80.toFixed(2)}, ${t.hi80.toFixed(2)}]</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; color: #6B6157;">
+            <span>Elevation:</span>
+            <span>${t.elev} m</span>
+          </div>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(46,38,31,0.1); font-size: 11px; color: #6B6157;">
+            Units: flashes/km²/yr · panel scale
+          </div>
+        </div>
+      `;
+      L.circleMarker([t.lat, t.lng], {
+        radius,
+        color: colorAt(v),
+        weight: 1.2,
+        opacity: 0.85,
+        fillColor: colorAt(v),
+        fillOpacity: 0.72,
+      }).bindPopup(popup).addTo(mapLayerGroups[sc]);
+    });
+  });
+
+  mapLayerGroups[mapActiveScenarioName].addTo(leafletMap);
+
+  mapLayerControl = L.control.layers(null, {
+    "Neutral scenario":  mapLayerGroups.Neutral,
+    "La Niña scenario":  mapLayerGroups.LaNina,
+    "El Niño scenario":  mapLayerGroups.ElNino,
+  }, { collapsed: false }).addTo(leafletMap);
+
+  mapLegendControl = L.control({ position: "bottomright" });
+  mapLegendControl.onAdd = () => {
+    const div = L.DomUtil.create("div", "map-legend");
+    div.innerHTML = `
+      <div style="background: rgba(253,251,247,0.95); padding: 10px 14px; border-radius: 12px;
+                  border: 1px solid rgba(46,38,31,0.08); box-shadow: 0 4px 16px rgba(46,38,31,0.06);
+                  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #2E261F; min-width: 160px;">
+        <div style="font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; color: #6B6157; margin-bottom: 8px;">Model ${model} · 5-yr mean GFD</div>
+        <div style="height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgb(143,163,142), rgb(184,133,79), rgb(168,86,56)); margin-bottom: 6px;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #6B6157;">
+          <span>${vmin.toFixed(1)}</span>
+          <span>${((vmin+vmax)/2).toFixed(1)}</span>
+          <span>${vmax.toFixed(1)}</span>
+        </div>
+        <div style="font-size: 10px; color: #6B6157; margin-top: 6px;">flashes/km²/yr (panel scale)</div>
+      </div>
+    `;
+    return div;
+  };
+  mapLegendControl.addTo(leafletMap);
+}
+
 waitForLeaflet(() => {
   fetchJSON("map_towers").then(d => {
-    const map = L.map("map", {
+    mapDataC = d;
+    leafletMap = L.map("map", {
       scrollWheelZoom: false,
       zoomControl: true,
       attributionControl: true,
     });
-
-    // Subtle muted basemap
     L.tileLayer(
       "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
       {
@@ -384,116 +520,36 @@ waitForLeaflet(() => {
         subdomains: "abcd",
         maxZoom: 18,
       }
-    ).addTo(map);
-
-    // Line polyline
+    ).addTo(leafletMap);
     L.polyline(d.line_path, {
-      color: "#2E261F",
-      weight: 2,
-      opacity: 0.55,
-      smoothFactor: 1.5,
-    }).addTo(map);
-
-    // Color scale based on GFD value
-    const vals = d.towers.map(t => t.neutral);
-    const vmin = Math.min(...vals);
-    const vmax = Math.max(...vals);
-    const lerp = (v) => Math.min(1, Math.max(0, (v - vmin) / (vmax - vmin)));
-    const colorAt = (v) => {
-      const t = lerp(v);
-      // sage → bronze → rust
-      const stops = [
-        [0,   [143, 163, 142]],
-        [0.5, [184, 133,  79]],
-        [1,   [168,  86,  56]],
-      ];
-      for (let i = 0; i < stops.length - 1; i++) {
-        const [a, ac] = stops[i], [b, bc] = stops[i + 1];
-        if (t <= b) {
-          const u = (t - a) / (b - a);
-          const c = ac.map((ch, k) => Math.round(ch + (bc[k] - ch) * u));
-          return `rgb(${c.join(",")})`;
-        }
-      }
-      return "rgb(168,86,56)";
-    };
-
-    const layerGroups = {
-      LaNina:  L.layerGroup(),
-      Neutral: L.layerGroup(),
-      ElNino:  L.layerGroup(),
-    };
-
-    d.towers.forEach(t => {
-      ["LaNina", "Neutral", "ElNino"].forEach(sc => {
-        const val = t[sc.toLowerCase().replace("la","la").replace("el","el")];
-        const v = sc === "LaNina" ? t.lanina : sc === "Neutral" ? t.neutral : t.elnino;
-        const radius = 4 + 8 * lerp(v);
-        const popup = `
-          <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: #2E261F; min-width: 200px;">
-            <div style="font-family: 'Fraunces', serif; font-size: 17px; font-weight: 500; margin-bottom: 6px;">Tower ${t.id}</div>
-            <div style="font-size: 11px; color: #6B6157; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;">${sc} · 5-yr mean</div>
-            <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px;">
-              <span style="color: #6B6157;">GFD (median):</span>
-              <strong style="color: #B8854F; font-size: 15px;">${v.toFixed(2)}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: 12px; color: #6B6157;">
-              <span>80% interval:</span>
-              <span>[${t.lo80.toFixed(2)}, ${t.hi80.toFixed(2)}]</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; color: #6B6157;">
-              <span>Elevation:</span>
-              <span>${t.elev} m</span>
-            </div>
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(46,38,31,0.1); font-size: 11px; color: #6B6157;">
-              Units: flashes/km²/yr · panel scale
-            </div>
-          </div>
-        `;
-        L.circleMarker([t.lat, t.lng], {
-          radius,
-          color: colorAt(v),
-          weight: 1.2,
-          opacity: 0.85,
-          fillColor: colorAt(v),
-          fillOpacity: 0.72,
-        }).bindPopup(popup).addTo(layerGroups[sc]);
-      });
-    });
-
-    layerGroups.Neutral.addTo(map);
-
-    L.control.layers(null, {
-      "Neutral scenario":  layerGroups.Neutral,
-      "La Niña scenario":  layerGroups.LaNina,
-      "El Niño scenario":  layerGroups.ElNino,
-    }, { collapsed: false }).addTo(map);
-
-    // Fit to data
+      color: "#2E261F", weight: 2, opacity: 0.55, smoothFactor: 1.5,
+    }).addTo(leafletMap);
     const bounds = L.latLngBounds(d.line_path);
-    map.fitBounds(bounds.pad(0.04));
+    leafletMap.fitBounds(bounds.pad(0.04));
 
-    // Legend
-    const legend = L.control({ position: "bottomright" });
-    legend.onAdd = () => {
-      const div = L.DomUtil.create("div", "map-legend");
-      div.innerHTML = `
-        <div style="background: rgba(253,251,247,0.95); padding: 10px 14px; border-radius: 12px;
-                    border: 1px solid rgba(46,38,31,0.08); box-shadow: 0 4px 16px rgba(46,38,31,0.06);
-                    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: #2E261F; min-width: 160px;">
-          <div style="font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: 10px; color: #6B6157; margin-bottom: 8px;">5-yr mean GFD</div>
-          <div style="height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgb(143,163,142), rgb(184,133,79), rgb(168,86,56)); margin-bottom: 6px;"></div>
-          <div style="display: flex; justify-content: space-between; font-size: 10px; color: #6B6157;">
-            <span>${vmin.toFixed(1)}</span>
-            <span>${((vmin+vmax)/2).toFixed(1)}</span>
-            <span>${vmax.toFixed(1)}</span>
-          </div>
-          <div style="font-size: 10px; color: #6B6157; margin-top: 6px;">flashes/km²/yr (panel scale)</div>
-        </div>
-      `;
-      return div;
-    };
-    legend.addTo(map);
+    buildMapMarkers(activeHotspotModel);
+  });
+
+  // Lazy-load Model D map data
+  fetch("figures/map_towers_d.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d) mapDataD = d; })
+    .catch(() => {});
+});
+
+// Hotspot model-pill wiring — swaps top-20 chart and map markers in place
+document.querySelectorAll(".hotspot-model-pill .model-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const m = btn.dataset.model;
+    document.querySelectorAll(".hotspot-model-pill .model-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-checked", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-checked", "true");
+    activeHotspotModel = m;
+    drawTop20(m);
+    buildMapMarkers(m);
   });
 });
 

@@ -18,7 +18,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8" defer></script>
 
-<link rel="stylesheet" href="assets/style.css" />
+<link rel="stylesheet" href="assets/style.css?v=1.2.1a" />
 </head>
 <body>
 
@@ -567,8 +567,21 @@
       The interactive map below shows every tower coloured by its
       predicted five-year mean GFD under the Neutral scenario. Click a
       marker for the tower's full forecast and prediction interval.
-      Toggle the scenarios in the layer control.
+      Toggle the scenarios in the layer control, or switch the model
+      below to compare hotspots under Model&nbsp;C vs Model&nbsp;D.
     </p>
+
+    <div class="model-pill hotspot-model-pill" role="radiogroup" aria-label="Choose model for hotspots">
+      <span class="model-pill-lbl">Model</span>
+      <button class="model-btn active" data-model="C" data-target="hotspot" role="radio" aria-checked="true">
+        <span class="dot" aria-hidden="true"></span>
+        Model C <span class="sm">benchmark</span>
+      </button>
+      <button class="model-btn" data-model="D" data-target="hotspot" role="radio" aria-checked="false">
+        <span class="dot" aria-hidden="true"></span>
+        Model D <span class="sm">forecast-informed</span>
+      </button>
+    </div>
 
     <div class="card double-bezel map-wrap">
       <div class="card-inner">
@@ -579,7 +592,7 @@
     <div class="card double-bezel" style="margin-top: 2rem;">
       <div class="card-inner">
         <h3 class="card-h">Top 20 towers by 5-year mean GFD (Neutral)</h3>
-        <p class="muted small">Vertical line is the median forecast; horizontal whiskers show the 80&nbsp;% prediction interval.</p>
+        <p class="muted small">Vertical line is the median forecast; horizontal whiskers show the 80&nbsp;% prediction interval. The model toggle above swaps between Model&nbsp;C and Model&nbsp;D rankings.</p>
         <div id="fig-top20" class="plotly-fig"></div>
       </div>
     </div>
@@ -719,19 +732,23 @@
     <ol class="recos">
       <li>
         <h4>Concentrate arrester upgrades on towers #140–#160.</h4>
-        <p>This cluster shows the highest predicted GFD in every scenario, with a stable seven-year history. The capital expenditure has the strongest expected return per rupiah here.</p>
+        <p>Both Model&nbsp;C and Model&nbsp;D place 16 of the same 20 towers (Jaccard&nbsp;0.67) in their top-20 hotspot lists, and all 16 overlap towers fall in this range (Mt.&nbsp;Ijen foothills, 210–245&nbsp;m elevation). The cluster is robust across modelling choices and has a stable seven-year history — capex here has the strongest expected return per rupiah.</p>
       </li>
       <li>
-        <h4>Tie maintenance scheduling to ENSO state.</h4>
-        <p>BMKG / BoM publishes ENSO outlooks quarterly. In years leaning La&nbsp;Niña, advance pre-monsoon inspections of insulators and earthing on the foothill section. In El&nbsp;Niño years, that budget can be redirected to other lines.</p>
+        <h4>Tie maintenance scheduling to ENSO state — now with quantified backing.</h4>
+        <p>Model&nbsp;D's forced climate fit puts the <strong>2026 La&nbsp;Niña mean GFD at 6.74&nbsp;flashes/km²/yr</strong> versus <strong>4.62 under El&nbsp;Niño</strong> — a 46&nbsp;% swing along the line. BMKG and BoM publish ENSO outlooks quarterly; treat them as operational signals: in La&nbsp;Niña-leaning years, advance pre-monsoon inspections of insulators and earthing on the foothill section by 1–2 months. In El&nbsp;Niño years, that budget can be redirected to other lines or to capital projects on this one.</p>
+      </li>
+      <li>
+        <h4>Use Model&nbsp;C for stable hotspot ranking, Model&nbsp;D for rolling annual planning.</h4>
+        <p>Model&nbsp;C is the conservative benchmark — flat weighting across all 7 years, climate as a sensitivity dial. Model&nbsp;D is the forecast-informed extension — climate is a functional model parameter, scenarios are climatologically calibrated. The Hotspots map (section&nbsp;07) lets you toggle between them. If C and D disagree on a borderline tower, treat it as a tower whose risk depends on which assumption you trust more — and budget accordingly.</p>
       </li>
       <li>
         <h4>Verify the Vaisala density convention before the next purchase.</h4>
-        <p>The ~5× ratio between per-tower and line-aggregate density is the single biggest interpretation uncertainty in this report. A 30-minute conversation with Vaisala support resolves it permanently.</p>
+        <p>The ~5× ratio between per-tower and line-aggregate density is the single biggest interpretation uncertainty in this report — unchanged from v1.0.0. A 30-minute conversation with Vaisala support resolves it permanently for both models.</p>
       </li>
       <li>
         <h4>Re-run this analysis every January.</h4>
-        <p>The entire pipeline is automated. As 2026 lightning data lands, the new run takes minutes and lets you see how reality compares to the forecast — a feedback loop that strengthens the model every year.</p>
+        <p>The entire pipeline is automated (<code>tidy_data.py</code> → <code>lightning_gfd_forecast.ipynb</code> → <code>run_model_d.py</code> → <code>generate_site_data.py</code>). As 2026 lightning data lands, the new run takes minutes. Model&nbsp;D in particular benefits from each new year — its fit weights recent observations more, so a single fresh year measurably shifts the climate coefficients. Re-running closes the feedback loop and lets you compare 2026 actuals against this forecast.</p>
       </li>
     </ol>
   </div>
@@ -849,8 +866,8 @@
 
 </main>
 
-<script src="assets/charts.js" defer></script>
-<script src="assets/site.js" defer></script>
+<script src="assets/charts.js?v=1.2.1a" defer></script>
+<script src="assets/site.js?v=1.2.1a" defer></script>
 
 </body>
 </html>

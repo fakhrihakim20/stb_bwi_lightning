@@ -343,25 +343,42 @@ if (fc["model"] == "D").any():
         "D": _ribbon("D"),
     })
 
-    # 9c. Top-20 paired + Jaccard
+    # 9c. Top-20 paired + Jaccard.
+    # For every tower in the UNION of both top-20 lists we ship BOTH models'
+    # 5-yr-mean Neutral density_p50, even if that tower isn't in the model's
+    # own top-20. This way Figure 5 shows two bars for every row instead of
+    # a missing bar that visually reads like "no data".
     def _top_set(model_label):
         sub = fc[(fc["model"] == model_label) & (fc["scenario"] == "Neutral")]
         t = (sub.groupby("tower_id")["density_p50"].mean()
                  .sort_values(ascending=False).head(20))
         return t.index.tolist(), t.to_dict()
 
-    ids_c, vals_c = _top_set("C")
-    ids_d, vals_d = _top_set("D")
+    def _all_means(model_label):
+        sub = fc[(fc["model"] == model_label) & (fc["scenario"] == "Neutral")]
+        return sub.groupby("tower_id")["density_p50"].mean().to_dict()
+
+    ids_c, _ = _top_set("C")
+    ids_d, _ = _top_set("D")
+    means_c_all = _all_means("C")
+    means_d_all = _all_means("D")
     both = set(ids_c) & set(ids_d)
     jaccard = len(both) / max(len(set(ids_c) | set(ids_d)), 1)
     union_ids = sorted(set(ids_c) | set(ids_d))
+
     write_json("comparison_top20", {
         "C_ids": [int(t) for t in ids_c],
         "D_ids": [int(t) for t in ids_d],
         "jaccard": round(jaccard, 3),
         "union_ids": [int(t) for t in union_ids],
-        "C_values": {str(int(k)): round(float(v), 2) for k, v in vals_c.items()},
-        "D_values": {str(int(k)): round(float(v), 2) for k, v in vals_d.items()},
+        # Lookup tables cover every union tower for both models
+        "C_values": {str(int(k)): round(float(means_c_all[k]), 2)
+                     for k in union_ids},
+        "D_values": {str(int(k)): round(float(means_d_all[k]), 2)
+                     for k in union_ids},
+        # Flag which towers are exclusive to one model's top-20
+        "C_only": sorted(int(t) for t in (set(ids_c) - set(ids_d))),
+        "D_only": sorted(int(t) for t in (set(ids_d) - set(ids_c))),
     })
 
     # 9d. Per-tower delta D-C, Neutral scenario, 5-yr mean
