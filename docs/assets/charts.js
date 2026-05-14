@@ -689,9 +689,18 @@ tryFetchJSON("comparison_top20").then(d => {
     pill.querySelector(".jp-num").textContent = (d.jaccard ?? 0).toFixed(2);
   }
 
-  // Paired bars on the union of top-20s
+  // Paired bars on the union of top-20s.
+  // Towers that appear in only one model's top-20 (the C_only / D_only
+  // arrays in the JSON) get an <i>...</i> label so the asymmetry is
+  // visible even though both bars are now drawn.
   const union = d.union_ids;
-  const labels = union.map(t => `Tower ${t}`);
+  const cOnly = new Set(d.C_only || []);
+  const dOnly = new Set(d.D_only || []);
+  const labels = union.map(t => {
+    if (cOnly.has(t)) return `<i>Tower ${t}</i>*`;   // in C top-20 only
+    if (dOnly.has(t)) return `<i>Tower ${t}</i>*`;   // in D top-20 only
+    return `Tower ${t}`;
+  });
   const cVals = union.map(t => d.C_values[String(t)] ?? null);
   const dVals = union.map(t => d.D_values[String(t)] ?? null);
 

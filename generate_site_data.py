@@ -20,8 +20,10 @@ Model awareness:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 import numpy as np
@@ -440,3 +442,56 @@ if (fc["model"] == "D").any():
 
 
 print("\nAll figure JSONs written.")
+
+
+# ---------------------------------------------------------------------------
+# 10. Asset cache-buster — content-hash the CSS/JS and patch docs/index.html
+# ---------------------------------------------------------------------------
+# After every `python generate_site_data.py` run, the script tags / link tag
+# in docs/index.html are rewritten to carry the first 8 characters of the
+# referenced asset's SHA-256 hash as a `?v=` query parameter. Browsers see a
+# fresh URL whenever the asset content changes, so the cache-busting is
+# automatic and exact (no manual version bumps needed).
+#
+# Only the three asset tags are touched:
+#   - <link rel="stylesheet" href="assets/style.css?v=…">
+#   - <script src="assets/charts.js?v=…">
+#   - <script src="assets/site.js?v=…">
+# If an asset file is missing the corresponding tag is left untouched.
+
+def _short_hash(path: Path, n: int = 8) -> str | None:
+    if not path.exists():
+        return None
+    h = hashlib.sha256(path.read_bytes()).hexdigest()
+    return h[:n]
+
+
+ASSETS_TO_VERSION = {
+    "assets/style.css":  DOCS / "assets" / "style.css",
+    "assets/charts.js":  DOCS / "assets" / "charts.js",
+    "assets/site.js":    DOCS / "assets" / "site.js",
+}
+
+index_html_path = DOCS / "index.html"
+if index_html_path.exists():
+    html = index_html_path.read_text(encoding="utf-8")
+    original = html
+    for rel, abs_path in ASSETS_TO_VERSION.items():
+        hash_ = _short_hash(abs_path)
+        if not hash_:
+            continue
+        # Match an existing `assets/...?v=ANY` or bare `assets/...` and
+        # replace with `assets/...?v=<hash>`. We require the file extension
+        # boundary to avoid accidentally matching substrings.
+        pattern = re.compile(
+            r"(" + re.escape(rel) + r")(\?v=[^\"'> ]*)?"
+        )
+        html = pattern.sub(lambda m: f"{m.group(1)}?v={hash_}", html)
+    if html != original:
+        index_html_path.write_text(html, encoding="utf-8")
+        print("Cache-buster: docs/index.html asset tags rewritten with current "
+              "content hashes.")
+    else:
+        print("Cache-buster: docs/index.html already up to date.")
+else:
+    print("Cache-buster: docs/index.html not found — skipping.")
