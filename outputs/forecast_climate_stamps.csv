@@ -1,0 +1,16 @@
+year,scenario,nino34_jja,dmi_jja,lead_months,source,confidence,provider,issued_date,fallback_status
+2026,LaNina,-1.0,-0.2,0,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2026,Neutral,0.0,0.0,0,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2026,ElNino,1.0,0.2,0,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2027,LaNina,-1.0,-0.2,12,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2027,Neutral,0.0,0.0,12,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2027,ElNino,1.0,0.2,12,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2028,LaNina,-1.0,-0.2,24,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2028,Neutral,0.0,0.0,24,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2028,ElNino,1.0,0.2,24,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2029,LaNina,-1.0,-0.2,36,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2029,Neutral,0.0,0.0,36,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2029,ElNino,1.0,0.2,36,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2030,LaNina,-1.0,-0.2,48,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2030,Neutral,0.0,0.0,48,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True
+2030,ElNino,1.0,0.2,48,scenario_prior,low,fallback,2026-05-14 00:00:00+00:00,True

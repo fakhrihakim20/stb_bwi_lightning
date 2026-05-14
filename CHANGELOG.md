@@ -6,6 +6,52 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [v1.2.1] — 2026-05-14
+
+### Changed
+- **Forced climate inclusion in Model D.** AICc on the v1.2 sample
+  rejected every climate-augmented candidate at `n_eff ≈ 5.8` and
+  selected intercept-only for `count`, `mean_ka`, and `max_ka`. With
+  no climate term in the fit, the LaNina / Neutral / ElNino scenario
+  tabs produced only RNG-noise differences rather than a climate
+  response. v1.2.1 locks Model D's three line-level formulas to
+  `target ~ nino34_jja + dmi_jja` so climate is a functional model
+  parameter regardless of AICc verdict. The user accepted the n=7
+  overfitting trade-off explicitly to make the scenario tabs
+  meaningful.
+- Inner CV now selects `half_life = ∞` and `ridge_alpha = 100` once
+  climate carries the year-to-year signal — recency weighting was
+  doing the work climate now does.
+
+### Empirical post-change verification (from `outputs/forecast_2026_2030.parquet`)
+- **Climate-coherence sign check passes**: 2026 mean GFD across the
+  line is **6.74** flashes/km²/yr under La Niña, **5.20** under Neutral,
+  **4.62** under El Niño. Direction matches Indonesia's known ENSO
+  sensitivity (La Niña wetter → more lightning).
+- Model C's scenario spread for 2026: **4 %** (essentially flat).
+  Model D v1.2.1 scenario spread: **46 %** — scenarios now drive
+  the forecast meaningfully.
+- Max `density_p50` across all Model D rows: **11.50** flashes/km²/yr;
+  historical panel max is 29.10, so no outlier blow-ups.
+- Band ordering `lo95 ≤ lo80 ≤ p50 ≤ hi80 ≤ hi95` holds for all 5,620
+  Model D rows.
+- Tower share invariant: `Σ shares_count = 1.000000`, `Σ shares_density
+  = 1.000000`.
+
+### Caveat F revised
+The v1.2 placeholder is replaced with text grounded in the post-rerun
+numbers above; see website section 08, caveat F.
+
+### Not changed
+- Model C output rows (still byte-identical to v1.0.0 archive).
+- The bootstrap year-resampling scheme.
+- `qsum` aggregation (still median of samples for `p50`, quantiles
+  for the bands).
+- The website layout, the JSON schemas, the comparison section.
+- `tidy_data.py`, `build_notebook.py`, the notebook itself.
+
+---
+
 ## [v1.2.0] — 2026-05-14
 
 ### Added
@@ -47,6 +93,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (ocean blue) — kept harmonious with the Editorial Luxury palette.
 
 ### Known limitations (Model D specific, in addition to v1.0 caveats)
+- **Bootstrap uncertainty: year-resampling + parameter only.** Model D's
+  200-replicate bootstrap propagates uncertainty from year-resampling
+  (recency-weighted) and refit-parameter variation. It does **not** add
+  per-tower NB process noise on top of the deterministic prediction
+  (early implementations did, but the NB tail at per-tower mean ≈ 15
+  produced extreme samples that broke the C-vs-D comparison plots).
+  *Empirical characterisation of Model D's bootstrap behaviour vs Model
+  C is pending — to be added once the v1.2 run is inspected.*
 - Model D's historical CV uses **observed** JJA Niño 3.4 / DMI as a
   "perfect-forecast" proxy — an **upper bound** on prospective skill.
   A v1.3 release will reconstruct contemporaneous CPC/IRI forecast

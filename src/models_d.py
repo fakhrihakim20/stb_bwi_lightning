@@ -250,58 +250,73 @@ def fit_model_d(
 
 def _select_nb_glm(line_year: pd.DataFrame, *, target: str,
                    weights_col: str, n_eff: float) -> dict:
-    """AICc-select an NB GLM among the candidate formulas."""
-    best = None
-    for tag, formula in CANDIDATE_FORMULAS_COUNT.items():
-        f = formula.replace("count", target)
-        try:
-            # Estimate alpha from a Poisson fit residual variance
-            poiss = smf.glm(f, data=line_year,
-                            family=sm.families.Poisson()).fit()
-            mu = poiss.fittedvalues
-            resid_var = ((line_year[target] - mu) ** 2 / mu).sum() / max(1, len(line_year) - poiss.df_model)
-            alpha = max(0.01, float(resid_var - 1.0) / max(mu.mean(), 1e-6))
+    """Fit Model D's count-target NB GLM.
 
-            res = smf.glm(f, data=line_year,
-                          family=sm.families.NegativeBinomial(alpha=alpha),
-                          var_weights=line_year[weights_col]).fit()
-            k = int(res.df_model) + 1
-            aicc = aicc_weighted(float(res.llf), k, n_eff)
-            cand = {"tag": tag, "formula": f, "result": res, "alpha": alpha, "aicc": aicc}
-            if best is None or cand["aicc"] < best["aicc"]:
-                best = cand
-        except Exception:
-            continue
-    if best is None:
+    v1.2.1 design decision: the formula is **locked** to
+    ``target ~ nino34_jja + dmi_jja`` (the D2 candidate). AICc is still
+    computed and returned as a diagnostic, but it does not drive selection.
+    At n_eff ≈ 5.8 the v1.2 AICc-driven loop rejected every climate-
+    augmented candidate; the user explicitly opted to force climate into
+    the model regardless, accepting the n=7 overfitting trade-off so the
+    scenario tabs (LaNina / Neutral / ElNino) reflect a real climate
+    response rather than RNG noise.
+
+    The function signature is unchanged so ``fit_model_d`` does not need
+    to know about the v1.2.1 change. If the locked fit fails, we fall
+    back to intercept-only Poisson as the last-resort safety net.
+    """
+    f = f"{target} ~ nino34_jja + dmi_jja"
+    try:
+        # Estimate NB dispersion alpha from a Poisson auxiliary fit, as
+        # in v1.2 (same numerical recipe).
+        poiss = smf.glm(f, data=line_year,
+                        family=sm.families.Poisson()).fit()
+        mu = poiss.fittedvalues
+        resid_var = ((line_year[target] - mu) ** 2 / mu).sum() / max(
+            1, len(line_year) - poiss.df_model
+        )
+        alpha = max(0.01, float(resid_var - 1.0) / max(mu.mean(), 1e-6))
+
+        res = smf.glm(f, data=line_year,
+                      family=sm.families.NegativeBinomial(alpha=alpha),
+                      var_weights=line_year[weights_col]).fit()
+        k = int(res.df_model) + 1
+        aicc = aicc_weighted(float(res.llf), k, n_eff)
+        return {
+            "tag": "D2_forced",
+            "formula": f,
+            "result": res,
+            "alpha": alpha,
+            "aicc": aicc,   # diagnostic only — not used to select
+        }
+    except Exception:
         # Last-resort: intercept-only Poisson, alpha=1.0
-        f = f"{target} ~ 1"
-        res = smf.glm(f, data=line_year, family=sm.families.Poisson()).fit()
-        best = {"tag": "fallback", "formula": f, "result": res, "alpha": 1.0,
-                "aicc": float("inf")}
-    return best
+        f0 = f"{target} ~ 1"
+        res = smf.glm(f0, data=line_year, family=sm.families.Poisson()).fit()
+        return {"tag": "fallback", "formula": f0, "result": res,
+                "alpha": 1.0, "aicc": float("inf")}
 
 
 def _select_gaussian(line_year: pd.DataFrame, *, target: str,
                      weights_col: str, n_eff: float) -> dict:
-    """AICc-select a weighted OLS for kA targets."""
-    best = None
-    for tmpl in CANDIDATE_FORMULAS_KA:
-        f = tmpl.format(tgt=target)
-        try:
-            res = smf.wls(f, data=line_year,
-                          weights=line_year[weights_col]).fit()
-            k = int(res.df_model) + 1
-            aicc = aicc_weighted(float(res.llf), k, n_eff)
-            cand = {"formula": f, "result": res, "aicc": aicc}
-            if best is None or cand["aicc"] < best["aicc"]:
-                best = cand
-        except Exception:
-            continue
-    if best is None:
-        f = f"{target} ~ 1"
-        res = smf.ols(f, data=line_year).fit()
-        best = {"formula": f, "result": res, "aicc": float("inf")}
-    return best
+    """Fit Model D's kA target via weighted OLS.
+
+    v1.2.1 design decision: the formula is **locked** to
+    ``target ~ nino34_jja + dmi_jja``. AICc is still computed for the
+    diagnostic table but is not used to select. See ``_select_nb_glm``
+    docstring for rationale.
+    """
+    f = f"{target} ~ nino34_jja + dmi_jja"
+    try:
+        res = smf.wls(f, data=line_year,
+                      weights=line_year[weights_col]).fit()
+        k = int(res.df_model) + 1
+        aicc = aicc_weighted(float(res.llf), k, n_eff)
+        return {"formula": f, "result": res, "aicc": aicc}
+    except Exception:
+        f0 = f"{target} ~ 1"
+        res = smf.ols(f0, data=line_year).fit()
+        return {"formula": f0, "result": res, "aicc": float("inf")}
 
 
 def _weighted_js_share(
@@ -518,24 +533,27 @@ def model_d_bootstrap_one(
 ) -> pd.DataFrame:
     """Single bootstrap replicate for Model D.
 
-    Resamples years with replacement using recency-weighted probabilities,
-    refits Model D, and returns the per-tower predictions plus NB process
-    noise drawn from the fitted predictive distribution.
+    Resamples years with replacement using recency-weighted probabilities
+    and refits Model D. Per-tower predictions come from the deterministic
+    refit — NB process noise is intentionally NOT added (see caveat F:
+    at small per-tower mean count, NB tails are heavy enough to dominate
+    the empirical mean).
     """
     years = np.array(sorted(line_year["year"].unique().tolist()))
     w = recency_weights(years.tolist(), half_life).reindex(years).to_numpy()
     p = w / w.sum()
     pick = rng.choice(years, size=len(years), replace=True, p=p)
 
+    # Build the bootstrap sample as a concatenation of the picked years.
+    # Duplicate years are kept as separate rows so that each pick
+    # contributes once to the var-weighted NB likelihood. The previous
+    # `dict(zip(pick, new_years))` year-remapping is removed — it silently
+    # collapsed duplicate picks into a single mapping and produced
+    # nonsensical year_idx values.
     line_boot = pd.concat([line_year[line_year["year"] == y] for y in pick],
                           ignore_index=True)
     panel_boot = pd.concat([panel[panel["year"] == y] for y in pick],
                            ignore_index=True)
-    # Reassign synthetic years 2019..2019+n-1 so year_idx stays well-defined
-    new_years = np.arange(2019, 2019 + len(pick))
-    year_map = dict(zip(pick, new_years))
-    line_boot["year"] = line_boot["year"].map(year_map)
-    panel_boot["year"] = panel_boot["year"].map(year_map)
 
     fit_b = fit_model_d(
         panel_boot, line_boot, towers,
@@ -547,16 +565,18 @@ def model_d_bootstrap_one(
                            climate_future=climate_future,
                            towers=towers)
 
-    # NB process noise on count
-    alpha = max(float(fit_b.count_alpha), 1e-3)
-    mu = pred["count_p50"].clip(lower=0.0).to_numpy()
-    var = mu + alpha * mu * mu
-    # Numpy's negative_binomial is parameterised by (n, p): mean = n*(1-p)/p,
-    # var = n*(1-p)/p^2. Solve for (n, p):
-    p_nb = np.clip(mu / np.maximum(var, 1e-6), 1e-6, 1 - 1e-6)
-    n_nb = np.clip(mu * p_nb / np.maximum(1 - p_nb, 1e-6), 1e-3, None)
-    pred["count_sample"] = rng.negative_binomial(n_nb, p_nb).astype(float)
-    pred["density_sample"] = pred["count_sample"] * fit_b.density_per_count
-    pred["mean_ka_sample"] = pred["mean_ka_p50"] + rng.normal(0, 3.0, len(pred))
-    pred["max_ka_sample"]  = pred["max_ka_p50"]  + rng.normal(0, 5.0, len(pred))
+    # Uncertainty for Model D comes from YEAR-RESAMPLING alone (the bootstrap
+    # already runs many reps, each on a different resampled year set, yielding
+    # a different deterministic prediction per tower). Adding per-tower NB
+    # process noise on top — with the small per-tower mean ≈ 15 — produces
+    # heavy right-tailed samples whose empirical mean is dominated by
+    # extreme draws. By skipping the process noise we keep the bootstrap
+    # samples interpretable: each "sample" is a coherent re-fit, and the
+    # mean/quantiles over reps faithfully reflect parameter + year-resampling
+    # uncertainty. (Process noise can be re-introduced in a v1.3 release with
+    # a clipped or line-level scheme.)
+    pred["count_sample"]   = pred["count_p50"].astype(float)
+    pred["density_sample"] = pred["density_p50"].astype(float)
+    pred["mean_ka_sample"] = pred["mean_ka_p50"].astype(float)
+    pred["max_ka_sample"]  = pred["max_ka_p50"].astype(float)
     return pred

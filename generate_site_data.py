@@ -224,6 +224,8 @@ write_json("seasonality", {
 # 6. CV skill — now with Model D rows
 # ---------------------------------------------------------------------------
 cv = pd.read_parquet(OUT / "cv_results.parquet")
+# Normalise scheme casing (Model C wrote 'LOYO'/'Expanding'; Model D wrote 'loyo'/'expanding')
+cv["scheme"] = cv["scheme"].astype(str).str.lower()
 agg_cols = [c for c in ["MAE","RMSE","Deviance","CRPS"] if c in cv.columns]
 cv_summary = (cv.groupby(["scheme","target","model"])[agg_cols]
                 .mean().reset_index())

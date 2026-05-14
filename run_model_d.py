@@ -189,6 +189,11 @@ def main() -> None:
     print(f"  bootstrap rows total: {len(boot_df):,}")
 
     print("\n=== Quantile aggregation ===")
+    # Use the bootstrap MEDIAN for p50 and QUANTILES for the prediction
+    # interval bands. Median is robust to outlier reps (a small minority
+    # of replicates can produce extreme line-count extrapolations when
+    # AICc picks `count ~ year_idx` on degenerate year-subsets); using
+    # the mean for p50 lets a few such reps dominate the central estimate.
     def qsum(group):
         return pd.Series({
             "count_p50":   group["count_sample"].quantile(0.50),

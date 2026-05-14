@@ -302,7 +302,12 @@
           and ingests NOAA / IRI / BoM / BMKG forecast probabilities for
           2026 where available. Beyond the operational forecast horizon
           (~9&nbsp;overlapping 3-month seasons), Model&nbsp;D reverts to
-          documented persistence-decay toward the scenario prior.
+          documented persistence-decay toward the scenario prior. In
+          v1.2.1 the count formula is <em>locked</em> to
+          <code>Niño&nbsp;3.4 + DMI</code> — AICc still computes the
+          information criterion as a diagnostic but no longer selects
+          the candidate; this forces climate to be a functional model
+          parameter rather than something rejected at n = 7. See caveat F.
         </p>
       </li>
       <li>
@@ -672,6 +677,34 @@
           </p>
         </div>
       </article>
+      <article class="caveat double-bezel">
+        <div class="card-inner">
+          <span class="cav-num">F</span>
+          <h3>Model&nbsp;D's climate response is data-driven and explicit — but it's still n = 7.</h3>
+          <p>
+            Model&nbsp;D's count, mean&nbsp;kA, and max&nbsp;kA formulas
+            are locked to <code>target ~ Niño&nbsp;3.4 (JJA) + DMI (JJA)</code>
+            in v1.2.1. AICc on the v1.2 sample rejected these climate
+            variables at <code>n_eff ≈ 5.8</code> and Model&nbsp;D collapsed
+            to a recency-weighted intercept; v1.2.1 overrides that so
+            climate becomes a functional model parameter rather than a
+            candidate that gets silently dropped. The resulting fit is
+            <strong>climatologically sensible</strong>: under La&nbsp;Niña
+            (Niño&nbsp;3.4 = −1), 2026 mean GFD across the line is
+            <strong>6.74</strong> flashes/km²/yr; under Neutral,
+            <strong>5.20</strong>; under El&nbsp;Niño (+1),
+            <strong>4.62</strong>. The direction (La&nbsp;Niña > Neutral >
+            El&nbsp;Niño) matches Indonesia's known wet/dry sensitivity
+            to ENSO. The magnitude is at the upper limit of what 7
+            training years can statistically support — coefficient
+            uncertainty is wide, and Model&nbsp;D may be capturing
+            sample-specific patterns rather than a stable climate
+            response. <strong>Treat Model&nbsp;D's scenario spread as a
+            sensitivity dial, not a precise forecast.</strong>
+          </p>
+        </div>
+      </article>
+
     </div>
   </div>
 </section>
@@ -808,8 +841,8 @@
     </div>
     <div class="foot-bottom">
       <span class="small muted">© 2026 · Re-run annually with new data.</span>
-      <a href="https://github.com/fakhrihakim20/stb_bwi_lightning/releases/tag/v1.2.0"
-         target="_blank" rel="noopener" class="version-chip">v1.2.0</a>
+      <a href="https://github.com/fakhrihakim20/stb_bwi_lightning/releases/tag/v1.2.1"
+         target="_blank" rel="noopener" class="version-chip">v1.2.1</a>
     </div>
   </div>
 </footer>
