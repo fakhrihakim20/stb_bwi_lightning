@@ -188,7 +188,7 @@ def cv_loyo_d(
                 obs_v = obs[mask].to_numpy()
                 pj_v = pj[mask].to_numpy()
                 row = {
-                    "scheme": "loyo",
+                    "scheme": "LOYO",
                     "target": tgt,
                     "model": "D",
                     "year_held": int(held),
@@ -198,13 +198,18 @@ def cv_loyo_d(
                     "RMSE": _rmse(obs_v, pj_v),
                     "Deviance": (_poisson_deviance(obs_v, pj_v)
                                  if tgt in ("count", "density") else np.nan),
+                    # CRPS sigma matches Model C convention (build_notebook.py):
+                    # per-prediction sigma = max(0.5, sqrt(pred)) — Poisson-like
+                    # dispersion. Earlier versions used fold-constant sd which
+                    # broke cross-model comparability of the CRPS column.
                     "CRPS": _gaussian_crps(obs_v, pj_v,
-                                            sd=max(np.std(obs_v), 1.0)),
+                                            sd=np.maximum(0.5,
+                                                           np.sqrt(np.maximum(pj_v, 0.0)))),
                 }
                 rows.append(row)
         except Exception as e:
             rows.append({
-                "scheme": "loyo", "target": "count", "model": "D",
+                "scheme": "LOYO", "target": "count", "model": "D",
                 "year_held": int(held),
                 "half_life": float(hl) if not math.isinf(hl) else None,
                 "ridge_alpha": float(ra),
@@ -268,7 +273,7 @@ def cv_expanding_d(
                 obs_v = obs[mask].to_numpy()
                 pj_v = pj[mask].to_numpy()
                 rows.append({
-                    "scheme": "expanding",
+                    "scheme": "Expanding",
                     "target": tgt,
                     "model": "D",
                     "year_held": int(held),
@@ -278,12 +283,17 @@ def cv_expanding_d(
                     "RMSE": _rmse(obs_v, pj_v),
                     "Deviance": (_poisson_deviance(obs_v, pj_v)
                                  if tgt in ("count", "density") else np.nan),
+                    # CRPS sigma matches Model C convention (build_notebook.py):
+                    # per-prediction sigma = max(0.5, sqrt(pred)) — Poisson-like
+                    # dispersion. Earlier versions used fold-constant sd which
+                    # broke cross-model comparability of the CRPS column.
                     "CRPS": _gaussian_crps(obs_v, pj_v,
-                                            sd=max(np.std(obs_v), 1.0)),
+                                            sd=np.maximum(0.5,
+                                                           np.sqrt(np.maximum(pj_v, 0.0)))),
                 })
         except Exception as e:
             rows.append({
-                "scheme": "expanding", "target": "count", "model": "D",
+                "scheme": "Expanding", "target": "count", "model": "D",
                 "year_held": int(held),
                 "half_life": float(hl) if not math.isinf(hl) else None,
                 "ridge_alpha": float(ra),

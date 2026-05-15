@@ -172,15 +172,20 @@ def main() -> None:
 
     print("\n=== Running bootstrap (n={}) × {} scenarios ===".format(
         N_BOOT, len(scenarios)))
+    # Deterministic per-scenario seed offset (replaces hash(sc) which was
+    # non-deterministic across Python interpreter sessions when
+    # PYTHONHASHSEED was unset — flagged in v1.2.1 x-ray audit M8).
+    SCENARIO_SEED = {"LaNina": 1, "Neutral": 2, "ElNino": 3}
     all_samples = []
     for sc in scenarios:
         sc_climate = climate_future[climate_future["scenario"] == sc].copy()
+        sc_offset = SCENARIO_SEED.get(sc, 0)
         for b in range(N_BOOT):
             sample = model_d_bootstrap_one(
                 panel, line_year, towers, sc_climate,
                 half_life=hl, ridge_alpha=ra,
                 elev=elev, dist_coast=dist_coast,
-                rng=np.random.default_rng(RNG_SEED + b * 7 + hash(sc) % 100),
+                rng=np.random.default_rng(RNG_SEED + b * 7 + sc_offset),
             )
             sample["_b"] = b
             all_samples.append(sample)
