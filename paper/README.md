@@ -41,8 +41,39 @@ no LaTeX template offered by ICT-PEP).
 
 1. `python tables/build_tables.py` — regenerate tables from current parquet
 2. `python figures/build_figures.py` — regenerate all figures
-3. `pandoc -o paper.docx --reference-doc=ieee-template.docx abstract.md sections/*.md`
-4. Manual cleanup in Word (figure placement, table styles)
-5. Save as `paper.docx`; upload to EDAS
+3. `python similarity_check.py` — local 7-gram overlap vs docs/index.html (target < 25 %; current pass: 1.6 %)
+4. **DOCX conversion** — pick one path:
+
+   - **Path A (recommended if pandoc is available)**:
+
+     ```
+     pandoc -o paper.docx --reference-doc=ieee-template.docx \
+         abstract.md sections/*.md
+     ```
+
+     The `--reference-doc` flag applies the official IEEE Word
+     template styles. Pandoc is **not installed in this development
+     environment**; install from <https://pandoc.org> if you have
+     it available.
+
+   - **Path B (python-docx fallback, used here)**:
+
+     ```
+     pip install --user python-docx
+     python build_docx.py
+     ```
+
+     Produces `paper/paper-draft.docx` with default Word styles.
+     Open the IEEE A4 .DOC template from
+     <https://www.ieee.org/conferences/publishing/templates.html>
+     and copy the body of the draft into the template manually,
+     re-applying the template's heading / abstract / caption styles.
+
+5. Insert figure PNGs (`figures/*.png`) and the two tables (`tables/*.md`)
+   into the appropriate Word locations.
+6. Add the author list, affiliations, and copyright statement directly
+   in the IEEE template — these are deliberately not in the markdown
+   source because they vary by submission.
+7. Save as `paper.docx`; upload to EDAS (<https://edas.info/N34860>).
 </content>
 </invoke>

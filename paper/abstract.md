@@ -1,12 +1,18 @@
-# Abstract (draft v1) — for user review
+# Per-Tower Lightning GFD Forecasting on the 150 kV Situbondo–Banyuwangi Transmission Line: A Dual-Model Hybrid Approach
 
-**Word count target: 200 words ±10.**
-**Framing approved: honest trade-off (Model D loses CV, wins climate response).**
+**Fakhri Hakim**
+PT PLN (Persero), UPT Probolinggo, East Java, Indonesia
+*Email:* fakhrihakim20@gmail.com
+
+---
+
+**Word count target: 200 words ±10. Current: 195.**
+**Framing: honest trade-off (Model D loses CV, wins climate response).**
 **Every quantitative claim traced to `paper/tables/audit.csv` or named JSON.**
 
 ---
 
-## Draft
+## Abstract
 
 We present a per-tower lightning Ground Flash Density (GFD) forecast for the
 281-tower **150 kV Situbondo–Banyuwangi** transmission line in East Java,
