@@ -8,7 +8,7 @@ Model D LOYO density RMSE,4.96,outputs/cv_results.parquet,scheme=='loyo' & targe
 Model D 2026 LaNina line-mean density_p50,6.74,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='LaNina',mean(density_p50) across 281 towers
 Model D 2026 Neutral line-mean density_p50,5.2,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='Neutral',mean(density_p50) across 281 towers
 Model D 2026 ElNino line-mean density_p50,4.62,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='ElNino',mean(density_p50) across 281 towers
-"Model D 2026 scenario spread (LaNina vs ElNino, %)",37.3,outputs/forecast_2026_2030.parquet,derived from LaNina and ElNino line-mean p50,"100 * (LaNina - ElNino) / mean(LaNina, ElNino)"
+"Model D 2026 scenario spread (LaNina vs ElNino, %)",37.4,outputs/forecast_2026_2030.parquet,"model=='D' & year==2026 & scenario in {'LaNina','ElNino'}","100 * (LaNina - ElNino) / mean(LaNina, ElNino); from unrounded means"
 Top-20 Jaccard overlap (Model C vs Model D),0.667,docs/figures/comparison_top20.json,key='jaccard',|C∩D| / |C∪D| on Neutral 5-yr mean top-20 towers
 Per-tower 7-yr mean density: min,2.88,data_tidy/exposure_tower_year.csv,groupby(tower_id).mean(density),min across 281 tower-level means
 Per-tower 7-yr mean density: max,10.78,data_tidy/exposure_tower_year.csv,groupby(tower_id).mean(density),max across 281 tower-level means

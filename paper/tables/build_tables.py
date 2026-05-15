@@ -126,15 +126,17 @@ def build_audit() -> pd.DataFrame:
             "aggregation": "mean(density_p50) across 281 towers",
         })
 
-    # Scenario spread (La Niña / El Niño) — for the 46 % claim
-    la = next(r["value"] for r in rows if r["claim"].endswith("LaNina line-mean density_p50"))
-    el = next(r["value"] for r in rows if r["claim"].endswith("ElNino line-mean density_p50"))
+    # Scenario spread (La Niña / El Niño) — computed from UNROUNDED means
+    # so the spread does not inherit display-rounding error from the two
+    # contributing rows above.
+    la_raw = fc[(fc["model"] == "D") & (fc["year"] == 2026) & (fc["scenario"] == "LaNina")]["density_p50"].mean()
+    el_raw = fc[(fc["model"] == "D") & (fc["year"] == 2026) & (fc["scenario"] == "ElNino")]["density_p50"].mean()
     rows.append({
         "claim": "Model D 2026 scenario spread (LaNina vs ElNino, %)",
-        "value": round(100.0 * (la - el) / ((la + el) / 2.0), 1),
+        "value": round(100.0 * (la_raw - el_raw) / ((la_raw + el_raw) / 2.0), 1),
         "source": "outputs/forecast_2026_2030.parquet",
-        "filter": "derived from LaNina and ElNino line-mean p50",
-        "aggregation": "100 * (LaNina - ElNino) / mean(LaNina, ElNino)",
+        "filter": "model=='D' & year==2026 & scenario in {'LaNina','ElNino'}",
+        "aggregation": "100 * (LaNina - ElNino) / mean(LaNina, ElNino); from unrounded means",
     })
 
     # Top-20 Jaccard (from comparison_top20.json — already computed in generate_site_data.py)
