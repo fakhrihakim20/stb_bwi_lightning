@@ -443,13 +443,17 @@
 <section id="model-vs" class="band band-cream">
   <div class="container reveal">
     <span class="section-tag">06 · Model C vs Model D</span>
-    <h2 class="h2">Two models, one transparent comparison.</h2>
+    <h2 class="h2">Two models, one honest trade-off.</h2>
     <p class="lede-narrow">
-      A new model is only worth adopting if it earns its complexity in
-      cross-validation. We report Model&nbsp;D's skill alongside
-      Model&nbsp;A (climatology) and Model&nbsp;C (the v1.0 benchmark) —
-      and we publish the tower-level differences so engineers can see
-      where the two disagree.
+      Model&nbsp;D trades cross-validation skill for climate
+      responsiveness. On the seven-year sample, AICc rejects the
+      Niño&nbsp;3.4 and IOD&nbsp;DMI coefficients as overfit; v1.2.1
+      overrides that and forces them in. The cost is a <strong>~20&nbsp;%
+      higher leave-one-year-out RMSE</strong> than Model&nbsp;C. The benefit
+      is a <strong>~37&nbsp;% La&nbsp;Niña-to-El&nbsp;Niño scenario spread</strong>
+      that Model&nbsp;C cannot produce. The two models answer different
+      operational questions — we publish both, side by side, so
+      practitioners can pick their assumption transparently.
     </p>
 
     <!-- 6a. Comparison table (static) -->
