@@ -1,0 +1,15 @@
+claim,value,source,filter,aggregation
+Model A LOYO count RMSE,13.18,outputs/cv_results.parquet,scheme=='loyo' & target=='count' & model=='A',mean(RMSE) across folds
+Model C LOYO count RMSE,12.91,outputs/cv_results.parquet,scheme=='loyo' & target=='count' & model=='C',mean(RMSE) across folds
+Model D LOYO count RMSE,15.53,outputs/cv_results.parquet,scheme=='loyo' & target=='count' & model=='D',mean(RMSE) across folds
+Model A LOYO density RMSE,4.21,outputs/cv_results.parquet,scheme=='loyo' & target=='density' & model=='A',mean(RMSE) across folds
+Model C LOYO density RMSE,4.13,outputs/cv_results.parquet,scheme=='loyo' & target=='density' & model=='C',mean(RMSE) across folds
+Model D LOYO density RMSE,4.96,outputs/cv_results.parquet,scheme=='loyo' & target=='density' & model=='D',mean(RMSE) across folds
+Model D 2026 LaNina line-mean density_p50,6.74,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='LaNina',mean(density_p50) across 281 towers
+Model D 2026 Neutral line-mean density_p50,5.2,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='Neutral',mean(density_p50) across 281 towers
+Model D 2026 ElNino line-mean density_p50,4.62,outputs/forecast_2026_2030.parquet,model=='D' & year==2026 & scenario=='ElNino',mean(density_p50) across 281 towers
+"Model D 2026 scenario spread (LaNina vs ElNino, %)",37.3,outputs/forecast_2026_2030.parquet,derived from LaNina and ElNino line-mean p50,"100 * (LaNina - ElNino) / mean(LaNina, ElNino)"
+Top-20 Jaccard overlap (Model C vs Model D),0.667,docs/figures/comparison_top20.json,key='jaccard',|C∩D| / |C∪D| on Neutral 5-yr mean top-20 towers
+Per-tower 7-yr mean density: min,2.88,data_tidy/exposure_tower_year.csv,groupby(tower_id).mean(density),min across 281 tower-level means
+Per-tower 7-yr mean density: max,10.78,data_tidy/exposure_tower_year.csv,groupby(tower_id).mean(density),max across 281 tower-level means
+"Per-tower spatial ratio (max/min, 7-yr mean density)",3.74,data_tidy/exposure_tower_year.csv,max/min of per-tower means,ratio of max to min
